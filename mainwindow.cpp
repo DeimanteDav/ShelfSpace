@@ -22,53 +22,49 @@
 #include <QPushButton>
 #include <QMenuBar>
 #include <QApplication>
+#include <qmessagebox.h>
 
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
-    //, ui(new Ui::MainWindow)
+    , ui(new Ui::MainWindow)
     , stackedWidget(new QStackedWidget(this)),
     addBookWidget(new QWidget(this)),
     viewBooksWidget(new QWidget(this))
 {
-    //ui->setupUi(this);
+    ui->setupUi(this);
 
-    //setupDatabase();
+    setupDatabase();
     //setupModel();
 
+    setupMenu();
 
-   // auto *mb = new QMenuBar(this);
-   // setMenuBar(mb);
-
-    //setupPages();
-    setupMenu(); //ar svarbi eiga?
-
-    // setupToolbar(); //no toolbar
-    setupCentralViews(); //new
+    setupCentralViews();
 
     setCentralWidget(stackedWidget);
 
     setWindowTitle("ShelfSpace");
-    resize(800, 600); //new
+    resize(800, 600);
 
     //stackedWidget->setCurrentWidget(mainPage);
 }
 
 MainWindow::~MainWindow()
 {
-    //delete ui;
+    delete ui;
 }
 
 void MainWindow::setupMenu()
 {
-    QMenu *bookMenu = menuBar()->addMenu("&Book");
+    QMenu *homeMenu = menuBar()->addMenu("&Home");
+    QAction *actionHome = new QAction("Home", this);
+    connect(actionHome, &QAction::triggered, [this]() {
+        loadRecommendedBooks();
+        stackedWidget->setCurrentWidget(mainPageWidget);
+    });
+    homeMenu->insertAction(actionExit, actionHome);
 
-    /*
-    actionAddBook = new QAction("&Add Book", this);
-    connect(actionAddBook, &QAction::triggered, this, &MainWindow::showAddBookView);
-    bookMenu->addAction(actionAddBook);
-    */
-
+    QMenu *bookMenu = menuBar()->addMenu("&Book Collection");
     actionViewBooks = new QAction("&View Collection", this);
     connect(actionViewBooks, &QAction::triggered, this, &MainWindow::showViewBooksView);
     bookMenu->addAction(actionViewBooks);
@@ -78,70 +74,46 @@ void MainWindow::setupMenu()
     connect(actionShowNotes, &QAction::triggered, this, &MainWindow::showNotesView);
     notesMenu->addAction(actionShowNotes);
 
-    QMenu *fileMenu = menuBar()->addMenu("&File"); //new
+    QMenu *exitMenu = menuBar()->addMenu("&Exit");
     actionExit = new QAction("&Exit", this);
     connect(actionExit, &QAction::triggered, this, &MainWindow::exitApplication);
-    fileMenu->addAction(actionExit);
-
-
-    /*
-    QMenu *viewMenu = menuBar()->addMenu("View");
-
-
-    QAction *mainAct = new QAction("Main", this);
-    QAction *favAct = new QAction("Favorites", this);
-    QAction *notesAct = new QAction("Notes", this);
-    QAction *bookAct = new QAction("Book", this); // do we need this? Kaip zinos i kokia knyga eit?
-
-    connect(mainAct, &QAction::triggered, this, &MainWindow::showMainPage);
-    connect(favAct, &QAction::triggered, this, &MainWindow::showFavoritesPage);
-    connect(notesAct, &QAction::triggered, this, &MainWindow::showNotesPage);
-    connect(bookAct, &QAction::triggered, this, &MainWindow::showBookPage);
-
-    viewMenu->addAction(mainAct);
-    viewMenu->addAction(favAct);
-    viewMenu->addAction(notesAct);
-    viewMenu->addAction(bookAct);
-*/
+    exitMenu->addAction(actionExit);
 }
 
-//don't need toolbar:
-/*
-void MainWindow::setupToolbar() {
-    QToolBar *toolbar = addToolBar("Main Toolbar");
-    toolbar->addAction(actionAddBook);
-    toolbar->addAction(actionViewBooks);
-}
-*/
-
+//cia vos ne main page
 void MainWindow::setupCentralViews() {
 
-    /*
-    // Placeholder widget for Add Book
-    QVBoxLayout *addLayout = new QVBoxLayout();
-    addLayout->addWidget(new QLabel("Add Book Form (placeholder)", this));
-    addBookWidget->setLayout(addLayout);
-    */
+    mainPageWidget = new QWidget(this);
+    QVBoxLayout *mainLayout = new QVBoxLayout();
 
-    // Placeholder widget for View Books
+    QLabel *titleLabel = new QLabel("Welcome to ShelfSpace");
+    titleLabel->setAlignment(Qt::AlignCenter);
+    titleLabel->setFont(QFont("Arial", 20, QFont::Bold));
+    mainLayout->addWidget(titleLabel);
+
+    recommendedBooksList = new QListWidget(this);
+    mainLayout->addWidget(recommendedBooksList);
+    loadRecommendedBooks();
+
+    connect(recommendedBooksList, &QListWidget::itemClicked, this, &MainWindow::handleBookClicked);
+
+    mainPageWidget->setLayout(mainLayout);
+
+    // Placeholder widget for View Books (Collection)
     QVBoxLayout *viewLayout = new QVBoxLayout();
     viewLayout->addWidget(new QLabel("View Books Table (placeholder)", this));
     viewBooksWidget->setLayout(viewLayout);
 
-    stackedWidget->addWidget(viewBooksWidget); // index 0
-    stackedWidget->addWidget(addBookWidget);   // index 1
-
+    // for Notes
     notesWidget = new QLabel("Notes page will be implemented here.");
+
+    stackedWidget->addWidget(viewBooksWidget);
+    stackedWidget->addWidget(addBookWidget);
+    stackedWidget->addWidget(mainPageWidget);
     stackedWidget->addWidget(notesWidget);
 
-    stackedWidget->setCurrentWidget(viewBooksWidget); // default view
+    stackedWidget->setCurrentWidget(mainPageWidget); // default view
 }
-
-/*
-void MainWindow::showAddBookView() {
-    stackedWidget->setCurrentWidget(addBookWidget);
-}
-*/
 
 void MainWindow::showViewBooksView() {
     stackedWidget->setCurrentWidget(viewBooksWidget);
@@ -155,52 +127,48 @@ void MainWindow::exitApplication() {
     QApplication::quit();
 }
 
+void MainWindow::setupDatabase() {
+    QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE");
+    //QString dbPath = QDir::currentPath() + "/ShelfSpace.db";  // Assumes .db is next to the executable
+    //QString dbPath = QCoreApplication::applicationDirPath() + "/ShelfSpace.db"; // shouldn't matter where .db is
+    db.setDatabaseName("ShelfSpace.db");
+
+    if (!db.open()) {
+        qDebug() << "Failed to open database:" << db.lastError().text();
+    } else {
+        qDebug() << "Database opened successfully at:" << "ShelfSpace.db";
+    }
+}
+
+void MainWindow::loadRecommendedBooks() {
+    recommendedBooksList->clear();
+
+    QSqlQuery query("SELECT title FROM books ORDER BY RANDOM() LIMIT 5");
+
+    if (!query.exec()) {
+        qDebug() << "Failed to execute query:" << query.lastError().text();
+        return;
+    }
+
+    while (query.next()) {
+        QString title = query.value(0).toString();
+        recommendedBooksList->addItem(title);
+    }
+}
+
+void MainWindow::handleBookClicked(QListWidgetItem *item) {
+    QString bookTitle = item->text();
+    qDebug() << "Selected book:" << bookTitle;
+
+    // TODO: Replace this with logic to show the real single-book page later
+    QMessageBox::information(this, "Book Selected", "You selected: " + bookTitle);
+
+    // In the future:
+    // stackedWidget->setCurrentWidget(singleBookWidget);
+    // singleBookWidget->loadBook(bookTitle); // or pass book ID, etc.
+}
 
 /*
-void MainWindow::setupPages()
-{
-    setupMainPage();
-
-  //  QWidget *bookListViewPage = new QWidget(this);
-   // QVBoxLayout *bookListLayout = new QVBoxLayout(bookListViewPage);
-   // bookListLayout->addWidget(ui->tableView);
-
-    // Placeholder pages for now
-    favoritesPage = new QLabel("Favorites Page");
-    notesPage = new QLabel("Notes Page");
-    bookPage = new QLabel("Book page"); //bookListViewPage;
-
-    stackedWidget->addWidget(mainPage);
-    stackedWidget->addWidget(favoritesPage);
-    stackedWidget->addWidget(notesPage);
-    stackedWidget->addWidget(bookPage);
-
-    stackedWidget->setCurrentWidget(mainPage);
-}
-
-void MainWindow::addPage(QWidget* page, const QString& name)
-{
-    stackedWidget->addWidget(page);
-    // for named lookup: map<QString, QWidget*>
-}
-
-void MainWindow::showMainPage()
-{
-    stackedWidget->setCurrentWidget(mainPage);
-}
-void MainWindow::showFavoritesPage()
-{
-    stackedWidget->setCurrentWidget(favoritesPage);
-}
-void MainWindow::showNotesPage()
-{
-    stackedWidget->setCurrentWidget(notesPage);
-}
-void MainWindow::showBookPage()
-{
-    stackedWidget->setCurrentWidget(bookPage);
-}
-
 void MainWindow::setupDatabase()
 {
     QString dbPath = QDir::currentPath() + "/books.db";
@@ -310,90 +278,4 @@ void MainWindow::parseAndInsertBooks(const QJsonArray &items)
 
     model->select();
 }
-
-void MainWindow::setupMainPage()
-{
-    mainPage = new QWidget(this);
-    auto *mainLay = new QVBoxLayout(mainPage);
-
-    //header
-    auto *hdr = new QLabel("<h1>Welcome to ShelfSpace</h1>", this);
-    hdr->setAlignment(Qt::AlignCenter);
-    mainLay->addWidget(hdr);
-
-    QListWidget *randomBookList = new QListWidget(this);
-    randomBookList->setStyleSheet("border: none;");
-
-    //hardcoded:
-    auto *randomBooksLayout = new QVBoxLayout();
-    randomBooksLayout->setContentsMargins(0, 10, 0, 0); // Add some top margin
-
-    QLabel *book1 = new QLabel("The Lord of the Rings", this);
-    book1->setAlignment(Qt::AlignCenter);
-    randomBooksLayout->addWidget(book1);
-
-    QLabel *book2 = new QLabel("1984", this);
-    book2->setAlignment(Qt::AlignCenter);
-    randomBooksLayout->addWidget(book2);
-
-    QLabel *book3 = new QLabel("The Hitchhiker's Guide to the Galaxy", this);
-    book3->setAlignment(Qt::AlignCenter);
-    randomBooksLayout->addWidget(book3);
-
-    mainLay->addLayout(randomBooksLayout);
-    mainLay->addStretch();
-
-    mainPage->setLayout(mainLay);
-
-    //database:
-    /*
-    QSqlDatabase db = QSqlDatabase::database("MAINPAGE"); // Get the existing connection
-    if (!db.isValid())
-    {
-        db = QSqlDatabase::addDatabase("QSQLITE", "MAINPAGE");
-        db.setDatabaseName("ShelfSpace.db");
-        if (!db.open()) qDebug() << db.lastError().text();
-    }
-
-    QSqlQuery q(db);
-    if (q.exec("SELECT title FROM books ORDER BY RANDOM() LIMIT 3")) {
-        while (q.next()) {
-            randomBookList->addItem(q.value(0).toString());
-        }
-    } else {
-        qDebug() << "Error fetching random books:" << q.lastError().text();
-    }
-    db.close(); // Close the specific connection
-
-
-    mainLay->addWidget(randomBookList);
-    mainLay->addStretch();
-
-    mainPage->setLayout(mainLay);
-
-*/
-
-/*
-}
-
-bool MainWindow::eventFilter(QObject *watched, QEvent *event) //override (?)
-{
-    if (event->type() == QEvent::MouseButtonRelease) {
-        if (auto *lbl = qobject_cast<QLabel*>(watched)) {
-            // lbl->objectName() is the imageUrl; look up corresponding bookId
-            // For simplicity: re-query the DB for this URL
-            QSqlQuery q;
-            q.prepare("SELECT id FROM tbBooks WHERE image = ?");
-            q.addBindValue(lbl->objectName());
-            if (q.exec() && q.next()) {
-                QString bookId = q.value(0).toString();
-                //BookDetailsWindow dlg(bookId, this);
-                //dlg.exec();
-            }
-            return true;
-        }
-    }
-    return QMainWindow::eventFilter(watched, event);
-}
-
 */

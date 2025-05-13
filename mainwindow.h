@@ -16,12 +16,12 @@
 #include <QToolBar>
 #include <QAction>
 #include <QVector>
+#include <QListWidget>
 
-/*
+
 namespace Ui {
 class MainWindow;
 }
-*/
 
 class MainWindow : public QMainWindow
 {
@@ -34,13 +34,15 @@ public:
     //void addPage(QWidget* page, const QString& name);
 
 private:
-    /*
     Ui::MainWindow *ui;
     QSqlDatabase db;
+
+    void setupDatabase();
+
+    /*
     QSqlTableModel *model;
     QNetworkAccessManager *manager;
 
-    void setupDatabase();
     void setupModel();
     void fetchAndInsertBooks();
     void parseAndInsertBooks(const QJsonArray &items);
@@ -57,10 +59,12 @@ private:
 */
 
     QStackedWidget *stackedWidget;
-    void setupMenu();
 
-    //void setupToolbar();  // Don't need a toolbar because you can find everything in main
+    void setupMenu();
     void setupCentralViews();
+
+    QWidget *mainPageWidget;
+    QListWidget *recommendedBooksList;
 
     QWidget *addBookWidget;
     QWidget *viewBooksWidget;
@@ -70,6 +74,8 @@ private:
     QAction *actionViewBooks;
     QAction *actionShowNotes;
     QAction *actionExit;
+
+    void loadRecommendedBooks();
 
 //protected:
   //  bool eventFilter(QObject *watched, QEvent *event) override;
@@ -86,6 +92,8 @@ private slots:
     void showViewBooksView();
     void showNotesView();
     void exitApplication();
+
+    void handleBookClicked(QListWidgetItem *item);
 };
 
 #endif // MAINWINDOW_H
