@@ -3,6 +3,7 @@
 
 #include <QDialog>
 #include <QString>
+#include <QVBoxLayout>
 
 namespace Ui {
 class BookDetailsWindow;
@@ -18,7 +19,14 @@ public:
 
 private:
     Ui::BookDetailsWindow *ui;
-    void loadBookDetails(const QString &bookId);
+    void loadBookDetails();
+
+    QString currentBookId;
+    QPushButton* btnFavorite;
+    QVBoxLayout* reviewsLayout = nullptr;
+    void updateFavoriteButton();
+    void toggleFavorite();
+    void submitReview();
 };
 
 #endif // BOOKDETAILSWINDOW_H
