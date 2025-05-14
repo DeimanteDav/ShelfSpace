@@ -161,7 +161,7 @@ void MainWindow::loadAllBooks() {
         delete child;
     }
 
-    QSqlQuery query("SELECT id, title, image FROM tbBooks");
+    QSqlQuery query("SELECT id, title, author, image FROM tbBooks");
 
     if (!query.exec()) {
         qDebug() << "Failed to execute query:" << query.lastError().text();
@@ -171,6 +171,7 @@ void MainWindow::loadAllBooks() {
     while (query.next()) {
         QString bookId = query.value("id").toString();
         QString title = query.value("title").toString();
+        QString author = query.value("author").toString();
         QString imageUrl = query.value("image").toString();
 
         QWidget *bookWidget = new QWidget();
@@ -201,10 +202,20 @@ void MainWindow::loadAllBooks() {
             reply->deleteLater();
         });
 
-        QLabel *titleLabel = new QLabel(title);
-        titleLabel->setStyleSheet("font-weight: bold; font-size: 14px;");
-        titleLabel->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
+        QWidget *infoContainer = new QWidget(); // Container for title, author
+        QVBoxLayout *infoLayout = new QVBoxLayout(infoContainer); // Title and author stacked vertically
+        infoLayout->setSpacing(2);
+        infoLayout->setContentsMargins(0, 0, 0, 0);
+        infoContainer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
 
+        QLabel *titleAuthorLabel = new QLabel();
+        QString richText = QString("<div style='line-height: 1.0;'><b style='font-size: 16px;'>%1</b><br/><span style='font-style: italic; font-size: 14px; color: gray;'>by %2</span></div>")
+                               .arg(title).arg(author);
+        titleAuthorLabel->setText(richText);
+        titleAuthorLabel->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
+        infoLayout->addWidget(titleAuthorLabel);
+
+        bookLayout->addWidget(infoContainer); // Add the title/author container to the horizontal layout
 
         QPushButton *favoriteButton = new QPushButton();
         favoriteButton->setCheckable(true);
@@ -216,7 +227,6 @@ void MainWindow::loadAllBooks() {
         favoriteButton->setFixedWidth(30);
 
         connect(favoriteButton, &QPushButton::clicked, this, [this, bookId, favoriteButton]() {
-            //QSqlDatabase db = QSqlDatabase::database();
             qDebug() << "Favorite button clicked for book ID:" << bookId;
             if (favoriteButton->isChecked()) {
                 addToFavorites(bookId);
@@ -227,18 +237,17 @@ void MainWindow::loadAllBooks() {
             }
         });
 
-
         QPushButton *infoButton = new QPushButton("Info");
         connect(infoButton, &QPushButton::clicked, this, [this, bookId, title]() {
             QMessageBox::information(this, "Book Info", "Open single-book window for: " + title);
             // Later: emit signal or switch to single-book widget
         });
 
-        bookLayout->addWidget(titleLabel);
+
         bookLayout->addWidget(favoriteButton);
         bookLayout->addWidget(infoButton);
-        bookWidget->setLayout(bookLayout);
 
+        bookWidget->setLayout(bookLayout);
         scrollLayout->addWidget(bookWidget);
     }
 
