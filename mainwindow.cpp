@@ -42,6 +42,8 @@ MainWindow::MainWindow(QWidget *parent)
 
     setupMenu();
 
+    networkManager = new QNetworkAccessManager(this);
+
     setupCentralViews();
 
     setCentralWidget(stackedWidget);
@@ -94,16 +96,6 @@ void MainWindow::setupCentralViews() {
     titleLabel->setFont(QFont("Arial", 20, QFont::Bold));
     mainLayout->addWidget(titleLabel);
 
-    //edit here:
-
-
-    /*
-    recommendedBooksList = new QListWidget(this);
-    mainLayout->addWidget(recommendedBooksList);
-    loadRecommendedBooks();
-
-    connect(recommendedBooksList, &QListWidget::itemClicked, this, &MainWindow::handleBookClicked);
-*/
 
     scrollArea = new QScrollArea(this);
     scrollArea->setWidgetResizable(true);
@@ -185,19 +177,59 @@ void MainWindow::loadAllBooks() {
         QHBoxLayout *bookLayout = new QHBoxLayout(bookWidget);
 
         QLabel *coverLabel = new QLabel();
-        coverLabel->setFixedSize(80, 100);
-        QPixmap pixmap;
-        pixmap.loadFromData(QByteArray());  // Placeholder; we'll add real downloading later
-        coverLabel->setPixmap(pixmap.scaled(80, 100, Qt::KeepAspectRatio));
+        coverLabel->setFixedSize(100, 150);
+        coverLabel->setAlignment(Qt::AlignCenter);
+        coverLabel->setText("Loading...");
+        bookLayout->addWidget(coverLabel); // placeholder
+
+        QUrl imageUrlWithId(imageUrl);
+        QNetworkRequest request(imageUrlWithId);
+        QNetworkReply *reply = networkManager->get(request);
+
+        connect(reply, &QNetworkReply::finished, this, [reply, coverLabel]() {
+            if (reply->error() == QNetworkReply::NoError) {
+                QPixmap pixmap;
+                pixmap.loadFromData(reply->readAll());
+                if (!pixmap.isNull()) {
+                    coverLabel->setPixmap(pixmap.scaled(100, 150, Qt::KeepAspectRatio));
+                    coverLabel->setText("");
+                }
+            } else {
+                coverLabel->setText("Image\nfailed");
+                qDebug() << "Failed to load image:" << reply->url().toString();
+            }
+            reply->deleteLater();
+        });
+        networkManager->get(QNetworkRequest(QUrl(imageUrl)));
+        //coverLabel->setPixmap(pixmap.scaled(80, 100, Qt::KeepAspectRatio));
 
         QLabel *titleLabel = new QLabel(title);
         titleLabel->setStyleSheet("font-weight: bold; font-size: 14px;");
         titleLabel->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
 
-        QPushButton *favoriteButton = new QPushButton("☆");
+
+        QPushButton *favoriteButton = new QPushButton();
         favoriteButton->setCheckable(true);
+
+        bool isFavorite = isBookFavorite(bookId);
+        favoriteButton->setChecked(isFavorite);
+        favoriteButton->setText(isFavorite ? "★" : "☆");
+        //favoriteButton->setCheckable(true);
         favoriteButton->setToolTip("Add/Remove from Favorites");
         favoriteButton->setFixedWidth(30);
+
+        connect(favoriteButton, &QPushButton::clicked, this, [this, bookId, favoriteButton]() {
+            QSqlDatabase db = QSqlDatabase::database();
+
+            if (favoriteButton->isChecked()) {
+                addToFavorites(bookId);
+                favoriteButton->setText("★");
+            } else {
+                removeFromFavorites(bookId);
+                favoriteButton->setText("☆");
+            }
+        });
+
 
         QPushButton *infoButton = new QPushButton("Info");
         connect(infoButton, &QPushButton::clicked, this, [this, bookId, title]() {
@@ -205,7 +237,7 @@ void MainWindow::loadAllBooks() {
             // Later: emit signal or switch to single-book widget
         });
 
-        bookLayout->addWidget(coverLabel);
+        //bookLayout->addWidget(coverLabel);
         bookLayout->addWidget(titleLabel);
         bookLayout->addWidget(favoriteButton);
         bookLayout->addWidget(infoButton);
@@ -217,23 +249,47 @@ void MainWindow::loadAllBooks() {
     scrollLayout->addStretch();
 }
 
-/*
-void MainWindow::loadRecommendedBooks() { //doesn't do what it has to
-    recommendedBooksList->clear();
+bool MainWindow::isBookFavorite(int bookId) {
 
-    QSqlQuery query("SELECT title FROM books ORDER BY RANDOM() LIMIT 5");
+    QSqlQuery check(QSqlDatabase::database());
+    check.prepare("SELECT COUNT(*) FROM tbFavorites WHERE bookId = :id");
+    check.bindValue(":id", bookId);
+    if (!check.exec() || !check.next())
+        return false;
+    return check.value(0).toInt() > 0;
 
-    if (!query.exec()) {
-        qDebug() << "Failed to execute query:" << query.lastError().text();
-        return;
+    /*
+    QSqlQuery checkQuery;
+    checkQuery.prepare("SELECT COUNT(*) FROM tbFavorites WHERE bookId = ?");
+    checkQuery.addBindValue(bookId);
+    if (!checkQuery.exec()) {
+        qDebug() << "Failed to check favorite:" << checkQuery.lastError().text();
+        return false;
     }
+    if (checkQuery.next()) {
+        return checkQuery.value(0).toInt() > 0;
+    }
+    return false;
+*/
+}
 
-    while (query.next()) {
-        QString title = query.value(0).toString();
-        recommendedBooksList->addItem(title);
+void MainWindow::addToFavorites(int bookId) {
+    QSqlQuery insertQuery;
+    insertQuery.prepare("INSERT INTO tbFavorites (bookId) VALUES (:id)");
+    insertQuery.addBindValue(bookId);
+    if (!insertQuery.exec()) {
+        qDebug() << "Failed to add to favorites:" << insertQuery.lastError().text();
     }
 }
-*/
+
+void MainWindow::removeFromFavorites(int bookId) {
+    QSqlQuery deleteQuery;
+    deleteQuery.prepare("DELETE FROM tbFavorites WHERE bookId = ?");
+    deleteQuery.addBindValue(bookId);
+    if (!deleteQuery.exec()) {
+        qDebug() << "Failed to remove from favorites:" << deleteQuery.lastError().text();
+    }
+}
 
 void MainWindow::handleBookClicked(QListWidgetItem *item) {
     QString bookTitle = item->text();
@@ -247,114 +303,3 @@ void MainWindow::handleBookClicked(QListWidgetItem *item) {
     // singleBookWidget->loadBook(bookTitle); // or pass book ID, etc.
 }
 
-/*
-void MainWindow::setupDatabase()
-{
-    QString dbPath = QDir::currentPath() + "/books.db";
-    db = QSqlDatabase::addDatabase("QSQLITE");
-    db.setDatabaseName(dbPath);
-
-    if (!db.open()) {
-        qDebug() << "Failed to open database:" << db.lastError().text();
-        return;
-    }
-
-    QSqlQuery query;
-    query.exec("CREATE TABLE IF NOT EXISTS books ("
-               "id INTEGER PRIMARY KEY AUTOINCREMENT,"
-               "title TEXT NOT NULL,"
-               "author TEXT NOT NULL,"
-               "year INTEGER)");
-
-    query.exec("SELECT COUNT(*) FROM books");
-    query.first();
-
-    int bookCount = query.value(0).toInt();
-
-    if (bookCount == 0) {
-        fetchAndInsertBooks();
-    }
-}
-
-void MainWindow::setupModel()
-{
-    model = new QSqlTableModel(this, db);
-    model->setTable("books");
-    model->select();
-    ui->tableView->setModel(model);
-
-    ui->tableView->resizeColumnsToContents();
-
-    ui->tableView->hideColumn(0);
-    ui->tableView->setColumnWidth(3, 80);
-
-    ui->tableView->horizontalHeader()->setSectionsMovable(true);
-
-    QFont headerFont = ui->tableView->horizontalHeader()->font();
-    headerFont.setBold(true);
-    ui->tableView->horizontalHeader()->setFont(headerFont);
-
-    for (int i = 1; i < model->columnCount(); ++i) {
-        if (i != 3) {
-            ui->tableView->horizontalHeader()->setSectionResizeMode(i, QHeaderView::Stretch);
-        }
-
-        QString headerText = model->headerData(i, Qt::Horizontal).toString();
-        model->setHeaderData(i, Qt::Horizontal, headerText.toUpper());
-    }
-}
-
-void MainWindow::fetchAndInsertBooks()
-{
-    manager = new QNetworkAccessManager(this);
-
-    QUrl url("https://www.googleapis.com/books/v1/volumes?q=fiction+OR+non-fiction&maxResults=40");
-    QNetworkRequest request(url);
-
-    connect(manager, &QNetworkAccessManager::finished, this, &MainWindow::onFetchFinished);
-
-    manager->get(request);
-}
-
-void MainWindow::onFetchFinished(QNetworkReply *reply)
-{
-    if (reply->error() != QNetworkReply::NoError) {
-        qDebug() << "Error fetching data:" << reply->errorString();
-        reply->deleteLater();
-        return;
-    }
-
-    QByteArray responseData = reply->readAll();
-    QJsonDocument jsonDoc = QJsonDocument::fromJson(responseData);
-    QJsonObject jsonObject = jsonDoc.object();
-    QJsonArray items = jsonObject["items"].toArray();
-
-    parseAndInsertBooks(items);
-
-    reply->deleteLater();
-}
-
-void MainWindow::parseAndInsertBooks(const QJsonArray &items)
-{
-    QSqlQuery query;
-    for (const QJsonValue &value : items) {
-        QJsonObject book = value.toObject();
-        QJsonObject volumeInfo = book["volumeInfo"].toObject();
-
-        QString title = volumeInfo["title"].toString();
-        QString author = volumeInfo["authors"].toArray().first().toString();
-        int year = volumeInfo["publishedDate"].toString().left(4).toInt();
-
-        query.prepare("INSERT INTO books (title, author, year) VALUES (?, ?, ?)");
-        query.addBindValue(title);
-        query.addBindValue(author);
-        query.addBindValue(year);
-
-        if (!query.exec()) {
-            qDebug() << "Error inserting book:" << query.lastError().text();
-        }
-    }
-
-    model->select();
-}
-*/

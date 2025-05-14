@@ -76,23 +76,19 @@ private:
     QAction *actionShowNotes;
     QAction *actionExit;
 
-    QScrollArea *scrollArea; //should they be in .h?
+    QScrollArea *scrollArea;
     QWidget *scrollWidget;
     QVBoxLayout *scrollLayout;
 
     void loadAllBooks();
+    bool isBookFavorite(int bookId);
+    void addToFavorites(int bookId);
+    void removeFromFavorites(int bookId);
 
-//protected:
-  //  bool eventFilter(QObject *watched, QEvent *event) override;
+    QNetworkAccessManager *networkManager;
+
 
 private slots:
-    /*
-    void onFetchFinished(QNetworkReply *reply);
-    void showMainPage();
-    void showFavoritesPage();
-    void showNotesPage();
-    void showBookPage();
-    */
 
     void showViewBooksView();
     void showNotesView();
