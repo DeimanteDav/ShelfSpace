@@ -57,28 +57,24 @@ MainWindow::~MainWindow()
 
 void MainWindow::setupMenu()
 {
-    QMenu *homeMenu = menuBar()->addMenu("&Home");
     QAction *actionHome = new QAction("Home", this);
     connect(actionHome, &QAction::triggered, [this]() {
         loadAllBooks();
         stackedWidget->setCurrentWidget(mainPageWidget);
     });
-    homeMenu->insertAction(actionExit, actionHome);
+    menuBar()->addAction(actionHome);
 
-    QMenu *bookMenu = menuBar()->addMenu("&Book Collection");
     actionViewBooks = new QAction("&View Collection", this);
     connect(actionViewBooks, &QAction::triggered, this, &MainWindow::showViewBooksView);
-    bookMenu->addAction(actionViewBooks);
+    menuBar()->addAction(actionViewBooks);
 
-    QMenu *notesMenu = menuBar()->addMenu("Notes");
     actionShowNotes = new QAction("Open Notes", this);
     connect(actionShowNotes, &QAction::triggered, this, &MainWindow::showNotesView);
-    notesMenu->addAction(actionShowNotes);
+    menuBar()->addAction(actionShowNotes);
 
-    QMenu *exitMenu = menuBar()->addMenu("&Exit");
     actionExit = new QAction("&Exit", this);
     connect(actionExit, &QAction::triggered, this, &MainWindow::exitApplication);
-    exitMenu->addAction(actionExit);
+    menuBar()->addAction(actionExit);
 }
 
 
