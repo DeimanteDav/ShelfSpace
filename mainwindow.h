@@ -32,32 +32,11 @@ public:
     explicit MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 
-    //void addPage(QWidget* page, const QString& name);
-
 private:
     Ui::MainWindow *ui;
     QSqlDatabase db;
 
     void setupDatabase();
-
-    /*
-    QSqlTableModel *model;
-    QNetworkAccessManager *manager;
-
-    void setupModel();
-    void fetchAndInsertBooks();
-    void parseAndInsertBooks(const QJsonArray &items);
-
-    QStackedWidget *stackedWidget;
-
-    QWidget *mainPage;
-    QWidget *favoritesPage;
-    QWidget *notesPage;
-    QWidget *bookPage;
-
-    void setupMainPage();
-    void setupPages();
-*/
 
     QStackedWidget *stackedWidget;
 
@@ -81,9 +60,9 @@ private:
     QVBoxLayout *scrollLayout;
 
     void loadAllBooks();
-    bool isBookFavorite(int bookId);
-    void addToFavorites(int bookId);
-    void removeFromFavorites(int bookId);
+    bool isBookFavorite(const QString& bookId);
+    void addToFavorites(const QString& bookId);
+    void removeFromFavorites(const QString& bookId);
 
     QNetworkAccessManager *networkManager;
 

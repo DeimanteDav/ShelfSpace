@@ -35,23 +35,18 @@ MainWindow::MainWindow(QWidget *parent)
 {
     ui->setupUi(this);
 
-
-
     setupDatabase();
-    //setupModel();
-
-    setupMenu();
 
     networkManager = new QNetworkAccessManager(this);
-
     setupCentralViews();
+
+    setupMenu();
 
     setCentralWidget(stackedWidget);
 
     setWindowTitle("ShelfSpace");
     resize(800, 600);
 
-    //stackedWidget->setCurrentWidget(mainPage);
 }
 
 MainWindow::~MainWindow()
@@ -140,8 +135,6 @@ void MainWindow::exitApplication() {
 
 void MainWindow::setupDatabase() {
     QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE");
-    //QString dbPath = QDir::currentPath() + "/ShelfSpace.db";  // Assumes .db is next to the executable
-    //QString dbPath = QCoreApplication::applicationDirPath() + "/ShelfSpace.db"; // shouldn't matter where .db is
     db.setDatabaseName("ShelfSpace.db");
 
     if (!db.open()) {
@@ -149,10 +142,17 @@ void MainWindow::setupDatabase() {
     } else {
         qDebug() << "Database opened successfully at: ShelfSpace.db";
     }
+
+    QSqlQuery query(db);
+    query.exec("PRAGMA journal_mode=WAL;");
+    if (query.lastError().isValid()) {
+        qDebug() << "Failed to enable WAL mode:" << query.lastError().text();
+    }
+    qDebug() << "WAL mode status:" << query.lastError().text();
 }
 
 void MainWindow::loadAllBooks() {
-    // Clear old book widgets -- ?
+    // Clear old book widgets
     QLayoutItem *child;
     while ((child = scrollLayout->takeAt(0)) != nullptr) {
         if (child->widget()) {
@@ -169,7 +169,7 @@ void MainWindow::loadAllBooks() {
     }
 
     while (query.next()) {
-        int bookId = query.value("id").toInt();
+        QString bookId = query.value("id").toString();
         QString title = query.value("title").toString();
         QString imageUrl = query.value("image").toString();
 
@@ -200,8 +200,6 @@ void MainWindow::loadAllBooks() {
             }
             reply->deleteLater();
         });
-        networkManager->get(QNetworkRequest(QUrl(imageUrl)));
-        //coverLabel->setPixmap(pixmap.scaled(80, 100, Qt::KeepAspectRatio));
 
         QLabel *titleLabel = new QLabel(title);
         titleLabel->setStyleSheet("font-weight: bold; font-size: 14px;");
@@ -214,13 +212,12 @@ void MainWindow::loadAllBooks() {
         bool isFavorite = isBookFavorite(bookId);
         favoriteButton->setChecked(isFavorite);
         favoriteButton->setText(isFavorite ? "★" : "☆");
-        //favoriteButton->setCheckable(true);
         favoriteButton->setToolTip("Add/Remove from Favorites");
         favoriteButton->setFixedWidth(30);
 
         connect(favoriteButton, &QPushButton::clicked, this, [this, bookId, favoriteButton]() {
-            QSqlDatabase db = QSqlDatabase::database();
-
+            //QSqlDatabase db = QSqlDatabase::database();
+            qDebug() << "Favorite button clicked for book ID:" << bookId;
             if (favoriteButton->isChecked()) {
                 addToFavorites(bookId);
                 favoriteButton->setText("★");
@@ -237,7 +234,6 @@ void MainWindow::loadAllBooks() {
             // Later: emit signal or switch to single-book widget
         });
 
-        //bookLayout->addWidget(coverLabel);
         bookLayout->addWidget(titleLabel);
         bookLayout->addWidget(favoriteButton);
         bookLayout->addWidget(infoButton);
@@ -247,9 +243,10 @@ void MainWindow::loadAllBooks() {
     }
 
     scrollLayout->addStretch();
+    query.finish();
 }
 
-bool MainWindow::isBookFavorite(int bookId) {
+bool MainWindow::isBookFavorite(const QString& bookId) {
 
     QSqlQuery check(QSqlDatabase::database());
     check.prepare("SELECT COUNT(*) FROM tbFavorites WHERE bookId = :id");
@@ -257,37 +254,26 @@ bool MainWindow::isBookFavorite(int bookId) {
     if (!check.exec() || !check.next())
         return false;
     return check.value(0).toInt() > 0;
-
-    /*
-    QSqlQuery checkQuery;
-    checkQuery.prepare("SELECT COUNT(*) FROM tbFavorites WHERE bookId = ?");
-    checkQuery.addBindValue(bookId);
-    if (!checkQuery.exec()) {
-        qDebug() << "Failed to check favorite:" << checkQuery.lastError().text();
-        return false;
-    }
-    if (checkQuery.next()) {
-        return checkQuery.value(0).toInt() > 0;
-    }
-    return false;
-*/
 }
 
-void MainWindow::addToFavorites(int bookId) {
+void MainWindow::addToFavorites(const QString& bookId) {
     QSqlQuery insertQuery;
     insertQuery.prepare("INSERT INTO tbFavorites (bookId) VALUES (:id)");
-    insertQuery.addBindValue(bookId);
+    insertQuery.bindValue(":id", bookId);
     if (!insertQuery.exec()) {
         qDebug() << "Failed to add to favorites:" << insertQuery.lastError().text();
     }
 }
 
-void MainWindow::removeFromFavorites(int bookId) {
+void MainWindow::removeFromFavorites(const QString& bookId) {
     QSqlQuery deleteQuery;
-    deleteQuery.prepare("DELETE FROM tbFavorites WHERE bookId = ?");
-    deleteQuery.addBindValue(bookId);
+    deleteQuery.prepare("DELETE FROM tbFavorites WHERE bookId = (:id)");
+    deleteQuery.bindValue(":id", bookId);
     if (!deleteQuery.exec()) {
         qDebug() << "Failed to remove from favorites:" << deleteQuery.lastError().text();
+        qDebug() << "bookId was:" << bookId;
+    } else {
+        qDebug() << "Successfully removed from favorites for bookId:" << bookId;
     }
 }
 
