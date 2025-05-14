@@ -65,6 +65,7 @@ private:
     void removeFromFavorites(const QString& bookId);
 
     QNetworkAccessManager *networkManager;
+    QList<QNetworkReply*> activeReplies;
 
 
 private slots:

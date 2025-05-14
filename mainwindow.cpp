@@ -24,6 +24,7 @@
 #include <QApplication>
 #include <qmessagebox.h>
 #include <QScrollArea>
+#include <QPointer>
 
 
 MainWindow::MainWindow(QWidget *parent)
@@ -80,7 +81,7 @@ void MainWindow::setupMenu()
     exitMenu->addAction(actionExit);
 }
 
-//cia vos ne main page
+
 void MainWindow::setupCentralViews() {
 
     mainPageWidget = new QWidget(this);
@@ -152,6 +153,21 @@ void MainWindow::setupDatabase() {
 }
 
 void MainWindow::loadAllBooks() {
+    // Abort any pending image downloads from the previous load
+    qDebug() << "Number of active replies before abort:" << activeReplies.size();
+    for (QNetworkReply *reply : activeReplies) {
+        if (!reply) {
+            qDebug() << "Warning: activeReplies contains a null pointer!";
+            continue;
+        }
+        if (reply && reply->isRunning()) {
+            reply->abort();
+            qDebug() << "Aborted network reply:" << reply->url().toString();
+        }
+        reply->deleteLater(); // Clean up the reply object
+    }
+    activeReplies.clear(); // Clear the list of active replies
+
     // Clear old book widgets
     QLayoutItem *child;
     while ((child = scrollLayout->takeAt(0)) != nullptr) {
@@ -177,7 +193,7 @@ void MainWindow::loadAllBooks() {
         QWidget *bookWidget = new QWidget();
         QHBoxLayout *bookLayout = new QHBoxLayout(bookWidget);
 
-        QLabel *coverLabel = new QLabel();
+        QPointer coverLabel = new QLabel();
         coverLabel->setFixedSize(100, 150);
         coverLabel->setAlignment(Qt::AlignCenter);
         coverLabel->setText("Loading...");
@@ -186,19 +202,26 @@ void MainWindow::loadAllBooks() {
         QUrl imageUrlWithId(imageUrl);
         QNetworkRequest request(imageUrlWithId);
         QNetworkReply *reply = networkManager->get(request);
+        activeReplies.append(reply);
 
-        connect(reply, &QNetworkReply::finished, this, [reply, coverLabel]() {
-            if (reply->error() == QNetworkReply::NoError) {
-                QPixmap pixmap;
-                pixmap.loadFromData(reply->readAll());
-                if (!pixmap.isNull()) {
-                    coverLabel->setPixmap(pixmap.scaled(100, 150, Qt::KeepAspectRatio));
-                    coverLabel->setText("");
-                }
+        connect(reply, &QNetworkReply::finished, this, [this, reply, coverLabel]() {
+            if(coverLabel)
+                {
+                    if (reply->error() == QNetworkReply::NoError) {
+                        QPixmap pixmap;
+                        pixmap.loadFromData(reply->readAll());
+                        if (!pixmap.isNull()) {
+                            coverLabel->setPixmap(pixmap.scaled(100, 150, Qt::KeepAspectRatio));
+                            coverLabel->setText("");
+                        }
+                    } else {
+                        coverLabel->setText("Image\nfailed");
+                        qDebug() << "Failed to load image:" << reply->url().toString();
+                    }
             } else {
-                coverLabel->setText("Image\nfailed");
-                qDebug() << "Failed to load image:" << reply->url().toString();
+                qDebug() << "Warning: coverLabel was deleted before image finished loading for:" << reply->url().toString();
             }
+            activeReplies.removeOne(reply);
             reply->deleteLater();
         });
 
