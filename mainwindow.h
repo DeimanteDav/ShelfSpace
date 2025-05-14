@@ -17,7 +17,8 @@
 #include <QAction>
 #include <QVector>
 #include <QListWidget>
-
+#include <QScrollArea>
+#include <QVBoxLayout>
 
 namespace Ui {
 class MainWindow;
@@ -75,7 +76,11 @@ private:
     QAction *actionShowNotes;
     QAction *actionExit;
 
-    void loadRecommendedBooks();
+    QScrollArea *scrollArea; //should they be in .h?
+    QWidget *scrollWidget;
+    QVBoxLayout *scrollLayout;
+
+    void loadAllBooks();
 
 //protected:
   //  bool eventFilter(QObject *watched, QEvent *event) override;

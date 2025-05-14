@@ -23,6 +23,7 @@
 #include <QMenuBar>
 #include <QApplication>
 #include <qmessagebox.h>
+#include <QScrollArea>
 
 
 MainWindow::MainWindow(QWidget *parent)
@@ -33,6 +34,8 @@ MainWindow::MainWindow(QWidget *parent)
     viewBooksWidget(new QWidget(this))
 {
     ui->setupUi(this);
+
+
 
     setupDatabase();
     //setupModel();
@@ -59,7 +62,7 @@ void MainWindow::setupMenu()
     QMenu *homeMenu = menuBar()->addMenu("&Home");
     QAction *actionHome = new QAction("Home", this);
     connect(actionHome, &QAction::triggered, [this]() {
-        loadRecommendedBooks();
+        loadAllBooks();
         stackedWidget->setCurrentWidget(mainPageWidget);
     });
     homeMenu->insertAction(actionExit, actionHome);
@@ -91,11 +94,27 @@ void MainWindow::setupCentralViews() {
     titleLabel->setFont(QFont("Arial", 20, QFont::Bold));
     mainLayout->addWidget(titleLabel);
 
+    //edit here:
+
+
+    /*
     recommendedBooksList = new QListWidget(this);
     mainLayout->addWidget(recommendedBooksList);
     loadRecommendedBooks();
 
     connect(recommendedBooksList, &QListWidget::itemClicked, this, &MainWindow::handleBookClicked);
+*/
+
+    scrollArea = new QScrollArea(this);
+    scrollArea->setWidgetResizable(true);
+
+    scrollWidget = new QWidget();
+    scrollLayout = new QVBoxLayout(scrollWidget);
+
+    scrollArea->setWidget(scrollWidget);
+    mainLayout->addWidget(scrollArea);
+
+    loadAllBooks();
 
     mainPageWidget->setLayout(mainLayout);
 
@@ -136,11 +155,70 @@ void MainWindow::setupDatabase() {
     if (!db.open()) {
         qDebug() << "Failed to open database:" << db.lastError().text();
     } else {
-        qDebug() << "Database opened successfully at:" << "ShelfSpace.db";
+        qDebug() << "Database opened successfully at: ShelfSpace.db";
     }
 }
 
-void MainWindow::loadRecommendedBooks() {
+void MainWindow::loadAllBooks() {
+    // Clear old book widgets -- ?
+    QLayoutItem *child;
+    while ((child = scrollLayout->takeAt(0)) != nullptr) {
+        if (child->widget()) {
+            delete child->widget();
+        }
+        delete child;
+    }
+
+    QSqlQuery query("SELECT id, title, image FROM tbBooks");
+
+    if (!query.exec()) {
+        qDebug() << "Failed to execute query:" << query.lastError().text();
+        return;
+    }
+
+    while (query.next()) {
+        int bookId = query.value("id").toInt();
+        QString title = query.value("title").toString();
+        QString imageUrl = query.value("image").toString();
+
+        QWidget *bookWidget = new QWidget();
+        QHBoxLayout *bookLayout = new QHBoxLayout(bookWidget);
+
+        QLabel *coverLabel = new QLabel();
+        coverLabel->setFixedSize(80, 100);
+        QPixmap pixmap;
+        pixmap.loadFromData(QByteArray());  // Placeholder; we'll add real downloading later
+        coverLabel->setPixmap(pixmap.scaled(80, 100, Qt::KeepAspectRatio));
+
+        QLabel *titleLabel = new QLabel(title);
+        titleLabel->setStyleSheet("font-weight: bold; font-size: 14px;");
+        titleLabel->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
+
+        QPushButton *favoriteButton = new QPushButton("☆");
+        favoriteButton->setCheckable(true);
+        favoriteButton->setToolTip("Add/Remove from Favorites");
+        favoriteButton->setFixedWidth(30);
+
+        QPushButton *infoButton = new QPushButton("Info");
+        connect(infoButton, &QPushButton::clicked, this, [this, bookId, title]() {
+            QMessageBox::information(this, "Book Info", "Open single-book window for: " + title);
+            // Later: emit signal or switch to single-book widget
+        });
+
+        bookLayout->addWidget(coverLabel);
+        bookLayout->addWidget(titleLabel);
+        bookLayout->addWidget(favoriteButton);
+        bookLayout->addWidget(infoButton);
+        bookWidget->setLayout(bookLayout);
+
+        scrollLayout->addWidget(bookWidget);
+    }
+
+    scrollLayout->addStretch();
+}
+
+/*
+void MainWindow::loadRecommendedBooks() { //doesn't do what it has to
     recommendedBooksList->clear();
 
     QSqlQuery query("SELECT title FROM books ORDER BY RANDOM() LIMIT 5");
@@ -155,6 +233,7 @@ void MainWindow::loadRecommendedBooks() {
         recommendedBooksList->addItem(title);
     }
 }
+*/
 
 void MainWindow::handleBookClicked(QListWidgetItem *item) {
     QString bookTitle = item->text();
