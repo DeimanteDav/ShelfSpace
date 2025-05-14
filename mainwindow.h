@@ -73,8 +73,6 @@ private slots:
     void showViewBooksView();
     void showNotesView();
     void exitApplication();
-
-    void handleBookClicked(QListWidgetItem *item);
 };
 
 #endif // MAINWINDOW_H
