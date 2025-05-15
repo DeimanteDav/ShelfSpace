@@ -46,8 +46,8 @@ void BookListView::setupUI()
 
 void BookListView::setupTable()
 {
-    tableWidget->setColumnCount(6);
-    tableWidget->setHorizontalHeaderLabels(QStringList() << "ID" << "Title" << "Author" << "Genre" << "Year" << "Image");
+    tableWidget->setColumnCount(5);
+    tableWidget->setHorizontalHeaderLabels(QStringList() << "Title" << "Author" << "Genre" << "Year" << "Image");
     tableWidget->horizontalHeader()->setStretchLastSection(true);
     tableWidget->setSelectionBehavior(QAbstractItemView::SelectRows);
     tableWidget->setEditTriggers(QAbstractItemView::NoEditTriggers);
@@ -59,7 +59,7 @@ void BookListView::loadBooks()
     tableWidget->setRowCount(0);
 
     QSqlQuery query(R"(
-    SELECT f.id, b.title, b.author, b.genre, b.year, b.image
+    SELECT b.title, b.author, b.genre, b.year, b.image
     FROM tbFavorites f
     JOIN tbBooks b ON f.bookId = b.id
     ORDER BY b.title
@@ -67,7 +67,6 @@ void BookListView::loadBooks()
 
     int row = 0;
     while (query.next()) {
-        QString id = query.value("id").toString();
         QString title = query.value("title").toString();
         QString author = query.value("author").toString();
         QString genre = query.value("genre").toString();
@@ -84,14 +83,13 @@ void BookListView::loadBooks()
         }
 
         tableWidget->insertRow(row);
-        tableWidget->setItem(row, 0, new QTableWidgetItem(query.value("id").toString()));      // ID
-        tableWidget->setItem(row, 1, new QTableWidgetItem(query.value("title").toString()));   // Title
-        tableWidget->setItem(row, 2, new QTableWidgetItem(query.value("author").toString()));  // Author
-        tableWidget->setItem(row, 3, new QTableWidgetItem(query.value("genre").toString()));   // Genre
-        tableWidget->setItem(row, 4, new QTableWidgetItem(query.value("year").toString()));    // Year
+        tableWidget->setItem(row, 0, new QTableWidgetItem(query.value("title").toString()));
+        tableWidget->setItem(row, 1, new QTableWidgetItem(query.value("author").toString()));
+        tableWidget->setItem(row, 2, new QTableWidgetItem(query.value("genre").toString()));
+        tableWidget->setItem(row, 3, new QTableWidgetItem(query.value("year").toString()));
 
         QTableWidgetItem *imageItem = new QTableWidgetItem("Loading...");
-        tableWidget->setItem(row, 5, imageItem);
+        tableWidget->setItem(row, 4, imageItem);
 
         // Capture row index with lambda
         QNetworkRequest request(imageUrl);
