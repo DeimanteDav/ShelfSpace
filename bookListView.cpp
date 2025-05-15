@@ -1,4 +1,5 @@
 #include "bookListView.h"
+#include "ui_bookListView.h"
 
 #include <QVBoxLayout>
 #include <QHBoxLayout>
@@ -15,6 +16,7 @@
 BookListView::BookListView(QWidget *parent) :
     QWidget(parent)
 {
+    networkManager = new QNetworkAccessManager(this);
     setupUI();
     setupTable();
     loadBooks();
@@ -56,7 +58,6 @@ void BookListView::loadBooks()
     ORDER BY b.title
     )");
 
-    tableWidget->setRowCount(0);
     int row = 0;
     while (query.next()) {
         tableWidget->insertRow(row);
@@ -65,9 +66,30 @@ void BookListView::loadBooks()
         tableWidget->setItem(row, 2, new QTableWidgetItem(query.value("author").toString()));  // Author
         tableWidget->setItem(row, 3, new QTableWidgetItem(query.value("genre").toString()));   // Genre
         tableWidget->setItem(row, 4, new QTableWidgetItem(query.value("year").toString()));    // Year
-        tableWidget->setItem(row, 5, new QTableWidgetItem(query.value("image").toString()));   // Image
+
+        QString imageUrl = query.value("image").toString();
+        QTableWidgetItem *imageItem = new QTableWidgetItem("Loading...");
+        tableWidget->setItem(row, 5, imageItem);
+
+        // Capture row index with lambda
+        QNetworkRequest request(imageUrl);
+        QNetworkReply *reply = networkManager->get(request);
+        connect(reply, &QNetworkReply::finished, this, [=]() {
+            QPixmap pixmap;
+            if (pixmap.loadFromData(reply->readAll())) {
+                imageItem->setIcon(QIcon(pixmap.scaled(64, 64, Qt::KeepAspectRatio, Qt::SmoothTransformation)));
+                imageItem->setText("");
+                tableWidget->resizeRowToContents(row);
+            } else {
+                imageItem->setText("Image load failed");
+            }
+            reply->deleteLater();
+        });
+
         ++row;
     }
+
+    tableWidget->setIconSize(QSize(64, 64));
 }
 
 void BookListView::onRemoveClicked()

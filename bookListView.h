@@ -4,6 +4,8 @@
 #include <QWidget>
 #include <QTableWidget>
 #include <QPushButton>
+#include <QNetworkAccessManager>
+#include <QNetworkReply>
 
 class BookListView : public QWidget
 {
@@ -20,6 +22,7 @@ private slots:
 private:
     QTableWidget *tableWidget;
     QPushButton *removeButton;
+    QNetworkAccessManager *networkManager;
 
     void setupUI();
     void setupTable();
