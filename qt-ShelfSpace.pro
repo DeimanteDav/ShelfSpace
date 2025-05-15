@@ -10,11 +10,13 @@ CONFIG += c++17
 
 SOURCES += \
     bookdetailswindow.cpp \
+    databasemanager.cpp \
     main.cpp \
     mainwindow.cpp
 
 HEADERS += \
     bookdetailswindow.h \
+    databasemanager.h \
     mainwindow.h
 
 FORMS += \

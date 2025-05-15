@@ -1,4 +1,5 @@
 #include "bookdetailswindow.h"
+#include "databasemanager.h"
 #include "ui_bookdetailswindow.h"
 
 #include <QSqlQuery>
@@ -15,13 +16,12 @@
 BookDetailsWindow::BookDetailsWindow(QString bookId, QWidget *parent)
     : QDialog(parent), ui(new Ui::BookDetailsWindow)
 {
-    QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE");
-    db.setDatabaseName("ShelfSpace.db");
+    QSqlDatabase db = DatabaseManager::instance().database();
 
-    if (!db.open()) {
-        qDebug() << "Error opening database:" << db.lastError().text();
+    if (!db.isOpen()) {
+        qDebug() << "Database is not open!";
     } else {
-        qDebug() << "Database connected!";
+        qDebug() << "Database connection reused successfully";
     }
 
     this->currentBookId = bookId;

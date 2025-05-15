@@ -1,6 +1,7 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
-//#include "bookdetailswindow.h"
+#include "bookdetailswindow.h"
+#include "databasemanager.h"
 
 #include <QSqlQuery>
 #include <QSqlError>
@@ -135,13 +136,12 @@ void MainWindow::exitApplication() {
 }
 
 void MainWindow::setupDatabase() {
-    QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE");
-    db.setDatabaseName("ShelfSpace.db");
+    QSqlDatabase db = DatabaseManager::instance().database();
 
-    if (!db.open()) {
-        qDebug() << "Failed to open database:" << db.lastError().text();
+    if (!db.isOpen()) {
+        qDebug() << "Database is not open!";
     } else {
-        qDebug() << "Database opened successfully at: ShelfSpace.db";
+        qDebug() << "Database connection reused successfully";
     }
 
     // Enable Write-Ahead Logging (WAL) for better database performance
@@ -274,11 +274,9 @@ void MainWindow::loadAllBooks() {
         QPushButton *infoButton = new QPushButton("Info");
         connect(infoButton, &QPushButton::clicked, this, [this, bookId, title]() {
             qDebug() << "Info button clicked for book ID:" << bookId << " Title:" << title;
-            // TODO: Here you will likely create and show the single-book-window
-            // Example (assuming BookDetailsWindow takes a bookId):
-            // BookDetailsWindow *detailsWindow = new BookDetailsWindow(bookId, this);
-            // detailsWindow->show();
-            QMessageBox::information(this, "Book Info", "Open single-book window for: " + title + "\n(Not yet implemented)");
+            BookDetailsWindow *detailsWindow = new BookDetailsWindow(bookId, this);
+            detailsWindow->setAttribute(Qt::WA_DeleteOnClose);
+            detailsWindow->show();
         });
 
         bookLayout->addWidget(favoriteButton);
