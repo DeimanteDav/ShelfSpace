@@ -6,7 +6,8 @@
 #include <QHeaderView>
 #include <QInputDialog>
 #include <QMessageBox>
-
+#include <QPixmap>
+#include <QIcon>
 #include <QSqlDatabase>
 #include <QSqlQuery>
 #include <QSqlError>
@@ -45,6 +46,7 @@ void BookListView::setupTable()
     tableWidget->horizontalHeader()->setStretchLastSection(true);
     tableWidget->setSelectionBehavior(QAbstractItemView::SelectRows);
     tableWidget->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    tableWidget->setIconSize(QSize(64, 64));
 }
 
 void BookListView::loadBooks()
@@ -98,6 +100,18 @@ void BookListView::onRemoveClicked()
     if (row < 0) {
         QMessageBox::warning(this, "Remove Book", "No book selected.");
         return;
+    }
+
+    QString bookTitle = tableWidget->item(row, 1)->text();
+    QMessageBox::StandardButton reply = QMessageBox::question(
+        this,
+        "Confirm Removal",
+        "Are you sure you want to remove \"" + bookTitle + "\" from your favorites?",
+        QMessageBox::Yes | QMessageBox::No
+        );
+
+    if (reply != QMessageBox::Yes) {
+        return; // User cancelled
     }
 
     QString favoriteId = tableWidget->item(row, 0)->text();
