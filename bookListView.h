@@ -14,13 +14,11 @@ public:
     void loadBooks();  // reload the table
 
 private slots:
-    void onAddClicked();
     void onRemoveClicked();
     void onBookDoubleClicked(int row, int column);
 
 private:
     QTableWidget *tableWidget;
-    QPushButton *addButton;
     QPushButton *removeButton;
 
     void setupUI();
