@@ -28,7 +28,7 @@ void BookListView::setupUI()
     QVBoxLayout *mainLayout = new QVBoxLayout(this);
 
     searchEdit = new QLineEdit(this);
-    searchEdit->setPlaceholderText("Search by title, author, or genre...");
+    searchEdit->setPlaceholderText("Search by title, author, genre or year...");
     mainLayout->addWidget(searchEdit);
 
     tableWidget = new QTableWidget(this);
@@ -76,7 +76,7 @@ void BookListView::loadBooks()
         // Filter here if search text is active
         QString filterText = searchEdit->text().trimmed();
         if (!filterText.isEmpty()) {
-            QString allText = title + " " + author + " " + genre;
+            QString allText = title + " " + author + " " + genre + " " + year;
             if (!allText.contains(filterText, Qt::CaseInsensitive)) {
                 continue;
             }
@@ -89,6 +89,7 @@ void BookListView::loadBooks()
         tableWidget->setItem(row, 3, new QTableWidgetItem(query.value("year").toString()));
 
         QTableWidgetItem *imageItem = new QTableWidgetItem("Loading...");
+        imageItem->setTextAlignment(Qt::AlignCenter);
         tableWidget->setItem(row, 4, imageItem);
 
         // Capture row index with lambda
