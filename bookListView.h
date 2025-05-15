@@ -4,6 +4,7 @@
 #include <QWidget>
 #include <QTableWidget>
 #include <QPushButton>
+#include <QLineEdit>
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
 
@@ -18,8 +19,10 @@ public:
 private slots:
     void onRemoveClicked();
     void onBookDoubleClicked(int row, int column);
+    void onSearchTextChanged(const QString &text);
 
 private:
+    QLineEdit *searchEdit;
     QTableWidget *tableWidget;
     QPushButton *removeButton;
     QNetworkAccessManager *networkManager;

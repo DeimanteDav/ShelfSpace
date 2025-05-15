@@ -27,6 +27,10 @@ void BookListView::setupUI()
 {
     QVBoxLayout *mainLayout = new QVBoxLayout(this);
 
+    searchEdit = new QLineEdit(this);
+    searchEdit->setPlaceholderText("Search by title, author, or genre...");
+    mainLayout->addWidget(searchEdit);
+
     tableWidget = new QTableWidget(this);
     mainLayout->addWidget(tableWidget);
 
@@ -37,6 +41,7 @@ void BookListView::setupUI()
 
     connect(removeButton, &QPushButton::clicked, this, &BookListView::onRemoveClicked);
     connect(tableWidget, &QTableWidget::cellDoubleClicked, this, &BookListView::onBookDoubleClicked);
+    connect(searchEdit, &QLineEdit::textChanged, this, &BookListView::onSearchTextChanged);
 }
 
 void BookListView::setupTable()
@@ -62,6 +67,22 @@ void BookListView::loadBooks()
 
     int row = 0;
     while (query.next()) {
+        QString id = query.value("id").toString();
+        QString title = query.value("title").toString();
+        QString author = query.value("author").toString();
+        QString genre = query.value("genre").toString();
+        QString year = query.value("year").toString();
+        QString imageUrl = query.value("image").toString();
+
+        // Filter here if search text is active
+        QString filterText = searchEdit->text().trimmed();
+        if (!filterText.isEmpty()) {
+            QString allText = title + " " + author + " " + genre;
+            if (!allText.contains(filterText, Qt::CaseInsensitive)) {
+                continue;
+            }
+        }
+
         tableWidget->insertRow(row);
         tableWidget->setItem(row, 0, new QTableWidgetItem(query.value("id").toString()));      // ID
         tableWidget->setItem(row, 1, new QTableWidgetItem(query.value("title").toString()));   // Title
@@ -69,7 +90,6 @@ void BookListView::loadBooks()
         tableWidget->setItem(row, 3, new QTableWidgetItem(query.value("genre").toString()));   // Genre
         tableWidget->setItem(row, 4, new QTableWidgetItem(query.value("year").toString()));    // Year
 
-        QString imageUrl = query.value("image").toString();
         QTableWidgetItem *imageItem = new QTableWidgetItem("Loading...");
         tableWidget->setItem(row, 5, imageItem);
 
@@ -90,8 +110,12 @@ void BookListView::loadBooks()
 
         ++row;
     }
+}
 
-    tableWidget->setIconSize(QSize(64, 64));
+void BookListView::onSearchTextChanged(const QString &text)
+{
+    Q_UNUSED(text);
+    loadBooks();  // Reload with filter applied
 }
 
 void BookListView::onRemoveClicked()
