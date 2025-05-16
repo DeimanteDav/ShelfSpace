@@ -1,4 +1,4 @@
-#include "notewidget.h"
+#include "noteeditwidget.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QLineEdit>
@@ -28,11 +28,28 @@ void saveNoteToDatabase(const QString &bookId,
     }
 
     QSqlQuery query(db);
+    if(!db.tables().contains("tbNotesLocal")){
+        QString createTable = "CREATE TABLE IF NOT EXISTS tbNotesLocal ("
+                              "bookId TEXT NOT NULL, "
+                              "dateCreated TEXT NOT NULL, "
+                              "dateModified TEXT NOT NULL, "
+                              "title TEXT NOT NULL, "
+                              "text TEXT"
+                              ");";
 
-    query.prepare("INSERT INTO tbReviews (bookId, dateCreated, dateModified, title, text) VALUES (?, ?, ?, ?, ?)");
+        if (!query.exec(createTable)) {
+            qDebug() << "Error: Failed to create table -" << query.lastError().text();
+        } else {
+            qDebug() << "Table created successfully!";
+        }
+    } else{
+        qDebug() << "Table already exists";
+    }
+
+    query.prepare("INSERT INTO tbNotesLocal (bookId, dateCreated, dateModified, title, text) VALUES (?, ?, ?, ?, ?)");
     query.addBindValue(bookId);
-    query.addBindValue(QDateTime::currentDateTime().toString("yyyy-MM-dd"));
-    query.addBindValue(QDateTime::currentDateTime().toString("yyyy-MM-dd"));
+    query.addBindValue(QDateTime::currentDateTime().toString("yyyy-MM-ddThh:mm:ss"));
+    query.addBindValue(QDateTime::currentDateTime().toString("yyyy-MM-ddThh:mm:ss"));
     query.addBindValue(title);
     query.addBindValue(text);
 
@@ -43,7 +60,7 @@ void saveNoteToDatabase(const QString &bookId,
     }
 }
 
-void loadNoteFromDatabase(int id){
+void loadNoteFromDatabase(QString id){
 
     QSqlDatabase db = QSqlDatabase::database("ShelfSpaceConnection");
 
@@ -53,7 +70,7 @@ void loadNoteFromDatabase(int id){
     }
 
     QSqlQuery query(db);
-    query.prepare("SELECT text, dateCreated FROM tbReviews WHERE id = ?");
+    query.prepare("SELECT text, dateCreated FROM tbReviews WHERE bookid = ?");
     query.addBindValue(id);
 
     if (!query.exec()) {
@@ -71,9 +88,11 @@ void loadNoteFromDatabase(int id){
     }
 }
 
-NoteWidget::NoteWidget(QWidget *parent)
-    : QWidget(parent)
+NoteEditWidget::NoteEditWidget(QWidget *parent, QString id)
+    : QWidget(parent), id(id)
 {
+
+    qDebug() << "Openning a note window";
     titleEdit = new QLineEdit(this);
     titleEdit->setPlaceholderText("Title");
 
@@ -92,51 +111,48 @@ NoteWidget::NoteWidget(QWidget *parent)
 
     setLayout(layout);
 
-    connect(saveButton, &QPushButton::clicked, this, &NoteWidget::handleSave);
-    //connect(loadButton, &QPushButton::clicked, this, &NoteWidget::loadNote);
+    connect(saveButton, &QPushButton::clicked, this, &NoteEditWidget::handleSave);
+    //connect(loadButton, &QPushButton::clicked, this, &NoteEditWidget::loadNote);
 }
 
-void NoteWidget::setContent(QString newContent)
+void NoteEditWidget::setContent(QString newContent)
 {
     contentEdit->setText(newContent);
 }
-void NoteWidget::setTitle(QString newTitle)
+void NoteEditWidget::setTitle(QString newTitle)
 {
     contentEdit->setText(newTitle);
 }
 
-QString NoteWidget::title() const
+QString NoteEditWidget::title() const
 {
     return titleEdit->text();
 }
 
-QString NoteWidget::content() const
+QString NoteEditWidget::content() const
 {
     return contentEdit->toPlainText();
 }
 
-QString NoteWidget::bookId() const
+QString NoteEditWidget::bookId() const
 {
-    return "replace_later";
+    return id;
 }
 
-QDateTime NoteWidget::dateCreated() const
+QDateTime NoteEditWidget::dateCreated() const
 {
     return QDateTime::currentDateTime();
 }
 
-int NoteWidget::id() const
-{
-    return testid;
-}
 
-void NoteWidget::handleSave()
+void NoteEditWidget::handleSave()
 {
     emit noteSaved(title(), content());
     saveNoteToDatabase(bookId(), dateCreated(), title(), content());
 }
 
-void NoteWidget::loadNote(){
-    loadNoteFromDatabase(id());
+void NoteEditWidget::loadNote(){
+    //loadNoteFromDatabase(id());
+    return;
 }
 

@@ -1,5 +1,5 @@
-#ifndef NOTEWIDGET_H
-#define NOTEWIDGET_H
+#ifndef NOTEEDITWIDGET_H
+#define NOTEEDITWIDGET_H
 
 #include <QWidget>
 
@@ -7,12 +7,12 @@ class QLineEdit;
 class QTextEdit;
 class QPushButton;
 
-class NoteWidget : public QWidget
+class NoteEditWidget : public QWidget
 {
     Q_OBJECT
 
 public:
-    explicit NoteWidget(QWidget *parent = nullptr);
+    NoteEditWidget(QWidget *parent, QString bookId);
     QString bookId() const;
 
     QDateTime dateCreated() const;
@@ -37,10 +37,9 @@ private:
     QTextEdit *contentEdit;
     QPushButton *saveButton;
     QPushButton *loadButton;
-    int testid = 1;
 
-    int id() const;
+    QString id;
 
 };
 
-#endif // NOTEWIDGET_H
+#endif // NOTEEDITWIDGET_H

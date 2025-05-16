@@ -1,6 +1,7 @@
 #include <QApplication>
 #include <QMainWindow>
-#include "notewidget.h"
+#include "noteeditwidget.h"
+#include "noteswidget.h"
 #include <QDebug>
 
 #include <QSqlDatabase>
@@ -13,43 +14,31 @@ int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
 
-    QFileInfo dbFile("/home/augustinas/code/ShelfSpace/ShelfSpace.db");
-    qDebug() << "File exists:" << dbFile.exists();
-    qDebug() << "Readable:" << dbFile.isReadable();
-    qDebug() << "Absolute file path:" << dbFile.absoluteFilePath();
-
-
+    //Temporary database solution
     QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE", "ShelfSpaceConnection");
-    db.setDatabaseName("/home/augustinas/code/ShelfSpace/ShelfSpace.db"); // May change!
+    db.setDatabaseName("/home/augustinas/code/ShelfSpace/ShelfSpace.db");
 
     if (!db.open()) {
         qDebug() << "Failed to open database:" << db.lastError().text();
         return -1;
     }
 
-    qDebug() << "DB file:" << db.databaseName();
+    QWidget *mainWidget = new notesWidget;
+    mainWidget->resize(800, 600);
+    mainWidget->show();
 
-    QStringList tables = db.tables();
-    if(!tables.isEmpty()){
-        for(const QString &table: tables){
-            qDebug() << table;
-        }
-    } else{
-        qDebug() << "EMPTYY";
-    }
+    return app.exec();
+    /*QApplication app(argc, argv);
+
+
+
 
     QMainWindow window;
-    NoteWidget *note = new NoteWidget;
-
-    QObject::connect(note, &NoteWidget::noteSaved, [](const QString &title, const QString &content) {
-        qDebug() << "Note Saved:";
-        qDebug() << "Title:" << title;
-        qDebug() << "Content:" << content;
-    });
+    NoteEditWidget *note = new NoteEditWidget;
 
     window.setCentralWidget(note);
     window.resize(400, 300);
     window.show();
 
-    return app.exec();
+    return app.exec();*/
 }

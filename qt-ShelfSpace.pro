@@ -11,17 +11,20 @@ CONFIG += c++17
 SOURCES += \
     main.cpp \
     mainwindow.cpp \
-    noteswindow.cpp \
-    notewidget.cpp
+    noteeditwidget.cpp \
+    noteswidget.cpp \
+    dragscrollarea.cpp \
+    labeledbutton.cpp
 
 HEADERS += \
     mainwindow.h \
-    noteswindow.h \
-    notewidget.h
+    noteeditwidget.h \
+    noteswidget.h \
+    dragscrollarea.h \
+    labeledbutton.h
 
 FORMS += \
     mainwindow.ui \
-    noteswindow.ui
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin
