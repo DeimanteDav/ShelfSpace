@@ -34,15 +34,13 @@ notesWidget::notesWidget(QWidget *parent)
     QSqlQuery query(db);
     QList books = loadAllBooks(db);
     for(int i = 0; i < books.size(); i++){
-        // Scroll Area.
-        DragScrollArea *scrollArea = new DragScrollArea;
-        setUpScrollArea(scrollArea);
 
         // Content inside scroll area.
         QWidget *contentWidget = new QWidget;
         QHBoxLayout *contentLayout = new QHBoxLayout(contentWidget);
         contentLayout->setSpacing(10);
         contentLayout->setContentsMargins(10, 10, 10, 10);
+        contentLayout->setAlignment(Qt::AlignLeft);
 
         // First button with icon and label /1 per book
         bookButton = new LabeledButton;
@@ -51,7 +49,7 @@ notesWidget::notesWidget(QWidget *parent)
         bookButton->setTotalSize(QSize(160, 160));
         contentLayout->addWidget(bookButton);
 
-        for (int i = 1; i <= QRandomGenerator::global()->bounded(3, 7); ++i) { //for each existing no
+        for (int i = 1; i <= QRandomGenerator::global()->bounded(3, 7); ++i) { //for each existing note
             QPushButton *button = new QPushButton(QString("Note %1").arg(i));
             button->setFixedSize(120, 100);
             contentLayout->addWidget(button);
@@ -67,6 +65,10 @@ notesWidget::notesWidget(QWidget *parent)
             qDebug() << "Trying to add note to this book: " << books[i].id;
             note->show();
         });
+
+        // Scroll Area.
+        DragScrollArea *scrollArea = new DragScrollArea;
+        setUpScrollArea(scrollArea);
 
         scrollArea->setWidget(contentWidget);
         mainLayout->addWidget(scrollArea);
@@ -105,7 +107,6 @@ void notesWidget::setUpScrollArea(DragScrollArea *scrollArea){
     scrollArea->setWidgetResizable(true);
     scrollArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     scrollArea->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-    scrollArea->setMaximumHeight(150);
-    scrollArea->setMinimumHeight(100);
+    scrollArea->setFixedHeight(190);
     scrollArea->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
 }

@@ -24,8 +24,16 @@ int main(int argc, char *argv[])
     }
 
     QWidget *mainWidget = new notesWidget;
-    mainWidget->resize(800, 600);
-    mainWidget->show();
+
+    QScrollArea* scrollArea = new QScrollArea;
+    scrollArea->setWidget(mainWidget);
+    scrollArea->setWidgetResizable(true);
+    scrollArea->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
+    scrollArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+
+    // Show it in a main window or layout
+    scrollArea->resize(800, 600);
+    scrollArea->show();
 
     return app.exec();
     /*QApplication app(argc, argv);

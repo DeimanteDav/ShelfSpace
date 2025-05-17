@@ -28,7 +28,7 @@ LabeledButton::LabeledButton(QWidget *parent)
     QVBoxLayout *layout = new QVBoxLayout(this);
     layout->setSpacing(5);
     layout->setContentsMargins(0, 0, 0, 0);
-    layout->setAlignment(Qt::AlignCenter);
+    layout->setAlignment(Qt::AlignLeft);
 
     iconButton = new QPushButton;
     iconButton->setFlat(true);
