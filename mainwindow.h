@@ -59,20 +59,24 @@ private:
     QWidget *scrollWidget;
     QVBoxLayout *scrollLayout;
 
-    void loadAllBooks();
     bool isBookFavorite(const QString& bookId);
     void addToFavorites(const QString& bookId);
     void removeFromFavorites(const QString& bookId);
+    void addBookToLayout(const QString& bookId, const QString& title, const QString& author, const QString& imageUrl);
+    void clearBookDisplay();
 
     QNetworkAccessManager *networkManager;
     QList<QNetworkReply*> activeReplies;
 
+    QLineEdit *searchLineEdit;
 
 private slots:
 
     void showViewBooksView();
     void showNotesView();
     void exitApplication();
+    void loadAllBooks();
+    void filterBooks(const QString &searchText);
 };
 
 #endif // MAINWINDOW_H
