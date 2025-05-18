@@ -1,6 +1,5 @@
 #include <QApplication>
 #include <QMainWindow>
-#include "noteeditwidget.h"
 #include "noteswidget.h"
 #include <QDebug>
 
