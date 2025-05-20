@@ -3,6 +3,7 @@
 #include "ui_mainwindow.h"
 #include "bookdetailswindow.h"
 #include "databasemanager.h"
+#include "bookListView.h"
 
 #include <QSqlQuery>
 #include <QSqlError>
@@ -41,6 +42,10 @@ MainWindow::MainWindow(QWidget *parent)
     setupDatabase();
 
     networkManager = new QNetworkAccessManager(this); // Manages network requests, in this case for downloading images
+
+    bookListView = new BookListView(this);
+    bookListView->setDatabase(DatabaseManager::instance().database());
+
     setupCentralViews();                              // Sets up the main layout and widgets in the center of the window
 
     setupMenu();
@@ -68,7 +73,7 @@ void MainWindow::setupMenu()
 
     // View Books (Collection) Button - Shows a view of all books (currently a placeholder)
     actionViewBooks = new QAction("&View Collection", this);
-    connect(actionViewBooks, &QAction::triggered, this, &MainWindow::showViewBooksView);
+    connect(actionViewBooks, &QAction::triggered, this, &MainWindow::showBookListView);
     menuBar()->addAction(actionViewBooks);
 
     // Notes Button - Shows the notes window (will be implemented by someone)
@@ -125,12 +130,14 @@ void MainWindow::setupCentralViews() {
     stackedWidget->addWidget(addBookWidget);
     stackedWidget->addWidget(mainPageWidget);
     stackedWidget->addWidget(notesWidget);
+    stackedWidget->addWidget(bookListView);
 
     stackedWidget->setCurrentWidget(mainPageWidget); // default view
 }
 
-void MainWindow::showViewBooksView() {
-    stackedWidget->setCurrentWidget(viewBooksWidget); // Switch to the "View Collection" page
+void MainWindow::showBookListView() {
+    bookListView->loadBooks(); // Assuming BookListView has a method to load/refresh books
+    stackedWidget->setCurrentWidget(bookListView);
 }
 
 void MainWindow::showNotesView() {

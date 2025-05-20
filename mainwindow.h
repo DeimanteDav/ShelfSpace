@@ -1,6 +1,7 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
+#include "bookListView.h"
 #include <QMainWindow>
 #include <QSqlDatabase>
 #include <QSqlTableModel>
@@ -40,6 +41,8 @@ private:
 
     QStackedWidget *stackedWidget;
 
+    BookListView *bookListView;
+
     void setupMenu();
     void setupCentralViews();
 
@@ -72,7 +75,7 @@ private:
 
 private slots:
 
-    void showViewBooksView();
+    void showBookListView();
     void showNotesView();
     void exitApplication();
     void loadAllBooks();

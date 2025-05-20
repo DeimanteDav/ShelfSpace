@@ -21,7 +21,18 @@ BookListView::BookListView(QWidget *parent) :
     networkManager = new QNetworkAccessManager(this);
     setupUI();
     setupTable();
-    loadBooks();
+    //loadBooks();
+}
+
+void BookListView::setDatabase(const QSqlDatabase &db)
+{
+    m_db = db;
+    if (!m_db.isValid() || !m_db.isOpen()) {
+        qDebug() << "BookListView received an invalid or closed database connection!";
+    } else {
+        qDebug() << "BookListView database set successfully.";
+    }
+    loadBooks(); // Load books once the database is set
 }
 
 void BookListView::setupUI()
@@ -47,19 +58,21 @@ void BookListView::setupUI()
 
 void BookListView::setupTable()
 {
-    tableWidget->setColumnCount(5);
-    tableWidget->setHorizontalHeaderLabels(QStringList() << "Title" << "Author" << "Genre" << "Year" << "Image");
+    tableWidget->setColumnCount(6);
+    tableWidget->setHorizontalHeaderLabels(QStringList() << "FAVORITE_ID" << "Title" << "Author" << "Genre" << "Year" << "Image");
 
     QHeaderView *header = tableWidget->horizontalHeader();
     header->setStretchLastSection(false);
 
     header->setSectionResizeMode(QHeaderView::Interactive);
 
-    tableWidget->setColumnWidth(0, 247); // Title
-    tableWidget->setColumnWidth(1, 240); // Author
-    tableWidget->setColumnWidth(2, 140); // Genre
-    tableWidget->setColumnWidth(3, 60);  // Year
-    tableWidget->setColumnWidth(4, 66);  // Image
+    tableWidget->setColumnHidden(0, true);
+
+    tableWidget->setColumnWidth(1, 247); // Title
+    tableWidget->setColumnWidth(2, 240); // Author
+    tableWidget->setColumnWidth(3, 140); // Genre
+    tableWidget->setColumnWidth(4, 60);  // Year
+    tableWidget->setColumnWidth(5, 66);  // Image
 
     tableWidget->setIconSize(QSize(64, 64));
     tableWidget->setSelectionBehavior(QAbstractItemView::SelectRows);
@@ -68,17 +81,32 @@ void BookListView::setupTable()
 
 void BookListView::loadBooks()
 {
+    if (!m_db.isValid() || !m_db.isOpen()) {
+        qDebug() << "Database not open for BookListView. Cannot load books.";
+        return;
+    }
+
     tableWidget->setRowCount(0);
 
-    QSqlQuery query(R"(
-    SELECT b.title, b.author, b.genre, b.year, b.image
+    QSqlQuery query(m_db);
+
+    query.prepare(R"(
+    SELECT f.id AS favorite_id, b.id AS book_id, b.title, b.author, b.genre, b.year, b.image
     FROM tbFavorites f
     JOIN tbBooks b ON f.bookId = b.id
     ORDER BY b.title
     )");
 
+    if (!query.exec()) {
+        qDebug() << "BookListView: Failed to execute query:" << query.lastError().text();
+        QMessageBox::critical(this, "Database Error", "Failed to load books: " + query.lastError().text());
+        return;
+    }
+
     int row = 0;
     while (query.next()) {
+        QString favoriteId = query.value("favorite_id").toString();
+        QString bookId = query.value("book_id").toString();
         QString title = query.value("title").toString();
         QString author = query.value("author").toString();
         QString genre = query.value("genre").toString();
@@ -97,25 +125,28 @@ void BookListView::loadBooks()
         tableWidget->insertRow(row);
         tableWidget->setRowHeight(row, 70);
 
+        QTableWidgetItem *favIdItem = new QTableWidgetItem(favoriteId);
+        tableWidget->setItem(row, 0, favIdItem);
+
         QTableWidgetItem *titleItem = new QTableWidgetItem(query.value("title").toString());
         QFont titleFont = titleItem->font();
         titleFont.setBold(true);
         titleItem->setFont(titleFont);
-        tableWidget->setItem(row, 0, titleItem);
+        tableWidget->setItem(row, 1, titleItem);
 
         QTableWidgetItem *authorItem = new QTableWidgetItem(query.value("author").toString());
         QFont authorFont = authorItem->font();
         authorFont.setItalic(true);
         authorItem->setFont(authorFont);
-        tableWidget->setItem(row, 1, authorItem);
+        tableWidget->setItem(row, 2, authorItem);
 
-        tableWidget->setItem(row, 2, new QTableWidgetItem(query.value("genre").toString()));
-        tableWidget->setItem(row, 3, new QTableWidgetItem(query.value("year").toString()));
+        tableWidget->setItem(row, 3, new QTableWidgetItem(query.value("genre").toString()));
+        tableWidget->setItem(row, 4, new QTableWidgetItem(query.value("year").toString()));
 
         QLabel *imageLabel = new QLabel();
         imageLabel->setAlignment(Qt::AlignCenter);
         imageLabel->setFixedSize(66, 66);
-        tableWidget->setCellWidget(row, 4, imageLabel);
+        tableWidget->setCellWidget(row, 5, imageLabel);
 
         // Capture row index with lambda
         QNetworkRequest request(imageUrl);
@@ -150,6 +181,7 @@ void BookListView::onRemoveClicked()
         return;
     }
 
+    QString favoriteIdToDelete = tableWidget->item(row, 0)->text();
     QString bookTitle = tableWidget->item(row, 1)->text();
     QMessageBox::StandardButton reply = QMessageBox::question(
         this,
@@ -169,7 +201,10 @@ void BookListView::onRemoveClicked()
 
     if (!query.exec()) {
         QMessageBox::critical(this, "Database Error", query.lastError().text());
+        qDebug() << "Failed to remove favorite for ID:" << favoriteIdToDelete << " Error:" << query.lastError().text();
         return;
+    } else {
+        qDebug() << "Successfully removed favorite with ID:" << favoriteIdToDelete;
     }
 
     loadBooks();

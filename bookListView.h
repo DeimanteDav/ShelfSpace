@@ -7,6 +7,7 @@
 #include <QLineEdit>
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
+#include <QSqlDatabase>
 
 class BookListView : public QWidget
 {
@@ -14,6 +15,7 @@ class BookListView : public QWidget
 
 public:
     explicit BookListView(QWidget *parent = nullptr);
+    void setDatabase(const QSqlDatabase &db);
     void loadBooks();  // reload the table
 
 private slots:
@@ -26,6 +28,7 @@ private:
     QTableWidget *tableWidget;
     QPushButton *removeButton;
     QNetworkAccessManager *networkManager;
+    QSqlDatabase m_db;
 
     void setupUI();
     void setupTable();

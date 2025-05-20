@@ -12,16 +12,19 @@ SOURCES += \
     bookdetailswindow.cpp \
     databasemanager.cpp \
     main.cpp \
-    mainwindow.cpp
+    mainwindow.cpp \
+    bookListView.cpp
 
 HEADERS += \
     bookdetailswindow.h \
     databasemanager.h \
-    mainwindow.h
+    mainwindow.h \
+    bookListView.h
 
 FORMS += \
     bookdetailswindow.ui \
-    mainwindow.ui
+    mainwindow.ui \
+    bookListView.ui
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin
