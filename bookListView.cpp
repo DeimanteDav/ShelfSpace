@@ -13,6 +13,7 @@
 #include <QSqlError>
 #include <QSqlRecord>
 #include <QDebug>
+#include <QLabel>
 
 BookListView::BookListView(QWidget *parent) :
     QWidget(parent)
@@ -48,10 +49,21 @@ void BookListView::setupTable()
 {
     tableWidget->setColumnCount(5);
     tableWidget->setHorizontalHeaderLabels(QStringList() << "Title" << "Author" << "Genre" << "Year" << "Image");
-    tableWidget->horizontalHeader()->setStretchLastSection(true);
+
+    QHeaderView *header = tableWidget->horizontalHeader();
+    header->setStretchLastSection(false);
+
+    header->setSectionResizeMode(QHeaderView::Interactive);
+
+    tableWidget->setColumnWidth(0, 247); // Title
+    tableWidget->setColumnWidth(1, 240); // Author
+    tableWidget->setColumnWidth(2, 140); // Genre
+    tableWidget->setColumnWidth(3, 60);  // Year
+    tableWidget->setColumnWidth(4, 66);  // Image
+
+    tableWidget->setIconSize(QSize(64, 64));
     tableWidget->setSelectionBehavior(QAbstractItemView::SelectRows);
     tableWidget->setEditTriggers(QAbstractItemView::NoEditTriggers);
-    tableWidget->setIconSize(QSize(64, 64));
 }
 
 void BookListView::loadBooks()
@@ -83,14 +95,27 @@ void BookListView::loadBooks()
         }
 
         tableWidget->insertRow(row);
-        tableWidget->setItem(row, 0, new QTableWidgetItem(query.value("title").toString()));
-        tableWidget->setItem(row, 1, new QTableWidgetItem(query.value("author").toString()));
+        tableWidget->setRowHeight(row, 70);
+
+        QTableWidgetItem *titleItem = new QTableWidgetItem(query.value("title").toString());
+        QFont titleFont = titleItem->font();
+        titleFont.setBold(true);
+        titleItem->setFont(titleFont);
+        tableWidget->setItem(row, 0, titleItem);
+
+        QTableWidgetItem *authorItem = new QTableWidgetItem(query.value("author").toString());
+        QFont authorFont = authorItem->font();
+        authorFont.setItalic(true);
+        authorItem->setFont(authorFont);
+        tableWidget->setItem(row, 1, authorItem);
+
         tableWidget->setItem(row, 2, new QTableWidgetItem(query.value("genre").toString()));
         tableWidget->setItem(row, 3, new QTableWidgetItem(query.value("year").toString()));
 
-        QTableWidgetItem *imageItem = new QTableWidgetItem("Loading...");
-        imageItem->setTextAlignment(Qt::AlignCenter);
-        tableWidget->setItem(row, 4, imageItem);
+        QLabel *imageLabel = new QLabel();
+        imageLabel->setAlignment(Qt::AlignCenter);
+        imageLabel->setFixedSize(66, 66);
+        tableWidget->setCellWidget(row, 4, imageLabel);
 
         // Capture row index with lambda
         QNetworkRequest request(imageUrl);
@@ -98,11 +123,11 @@ void BookListView::loadBooks()
         connect(reply, &QNetworkReply::finished, this, [=]() {
             QPixmap pixmap;
             if (pixmap.loadFromData(reply->readAll())) {
-                imageItem->setIcon(QIcon(pixmap.scaled(64, 64, Qt::KeepAspectRatio, Qt::SmoothTransformation)));
-                imageItem->setText("");
-                tableWidget->resizeRowToContents(row);
+                QPixmap scaled = pixmap.scaled(64, 64, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+                imageLabel->setPixmap(scaled);
             } else {
-                imageItem->setText("Image load failed");
+                imageLabel->setText("X");
+                imageLabel->setAlignment(Qt::AlignCenter);
             }
             reply->deleteLater();
         });
