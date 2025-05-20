@@ -6,6 +6,9 @@
 #include <QMouseEvent>
 #include <QPoint>
 
+//This should simulate a similar thing to scrolling on a phone,
+//with the functionality to press and pan in a direction
+
 class DragScrollArea : public QScrollArea {
     Q_OBJECT
 

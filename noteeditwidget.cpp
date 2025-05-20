@@ -20,15 +20,21 @@ void saveNoteToDatabase(const QString &bookId,
                         const QString &title, const QString &text)
 {
 
-    QSqlDatabase db = QSqlDatabase::database("ShelfSpaceConnection");
-
-    if (!db.isOpen()) {
-        qDebug() << "Database not open for noteSaveOperation!";
+    if (!DatabaseManager::instance().openDatabase("ShelfSpace.db")) {
+        qDebug() << "Failed to open database";
         return;
     }
+    /*
+    QSqlDatabase db = DatabaseManager::instance().database();
+    if (!db.isOpen()) {
+        qDebug() << "Database is not open!";
+    } else {
+        qDebug() << "Database connection reused successfully";
+    }*/
 
-    QSqlQuery query(db);
-    if(!db.tables().contains("tbNotesLocal")){
+
+    QSqlQuery query(DatabaseManager::instance().database());
+    if(!DatabaseManager::instance().database().tables().contains("tbNotesLocal")){
         QString createTable = "CREATE TABLE IF NOT EXISTS tbNotesLocal ("
                               "bookId TEXT NOT NULL, "
                               "dateCreated TEXT NOT NULL, "
@@ -70,15 +76,21 @@ void editNoteFromDatabase(const QString &bookId,
                         const QString &dateCreated,
                         const QString &newTitle, const QString &newText)
 {
-
-    QSqlDatabase db = QSqlDatabase::database("ShelfSpaceConnection");
+    /*
+    QSqlDatabase db = DatabaseManager::instance().database();
 
     if (!db.isOpen()) {
-        qDebug() << "Database not open for noteSaveOperation!";
+        qDebug() << "Database is not open!";
+    } else {
+        qDebug() << "Database connection reused successfully";
+    }*/
+
+    if (!DatabaseManager::instance().openDatabase("ShelfSpace.db")) {
+        qDebug() << "Failed to open database";
         return;
     }
 
-    QSqlQuery query(db);
+    QSqlQuery query(DatabaseManager::instance().database());
     query.prepare("UPDATE tbNotesLocal SET title = ?, text = ?, dateModified = ? "
                   "WHERE bookId = ? AND dateCreated = ?");
 
@@ -121,15 +133,21 @@ NoteEditWidget::NoteEditWidget(QWidget *parent, QString id) //New note
 NoteEditWidget::NoteEditWidget(QWidget *parent,QString id,QString dateCreated, QString title) //Load a note
     : QWidget(parent), id(id), dateCreated(dateCreated)
 {
-
-    QSqlDatabase db = QSqlDatabase::database("ShelfSpaceConnection");
+    /*
+    QSqlDatabase db = DatabaseManager::instance().database();
 
     if (!db.isOpen()) {
-        qDebug() << "Database not open for noteLoadOperation!";
+        qDebug() << "Database is not open!";
+    } else {
+        qDebug() << "Database connection reused successfully";
+    }
+    */
+    if (!DatabaseManager::instance().openDatabase("ShelfSpace.db")) {
+        qDebug() << "Failed to open database";
         return;
     }
 
-    QSqlQuery query(db);
+    QSqlQuery query(DatabaseManager::instance().database());
     query.prepare("SELECT text FROM tbNotesLocal WHERE bookid = ? AND dateCreated = ? AND title = ?");
     query.addBindValue(id);
     query.addBindValue(dateCreated);

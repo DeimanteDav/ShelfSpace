@@ -4,6 +4,7 @@
 #include "bookdetailswindow.h"
 #include "databasemanager.h"
 #include "bookListView.h"
+#include "noteswidget.h"
 
 #include <QSqlQuery>
 #include <QSqlError>
@@ -29,6 +30,7 @@
 #include <QScrollArea>
 #include <QPointer>
 #include <QLineEdit>
+
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -124,12 +126,20 @@ void MainWindow::setupCentralViews() {
     viewBooksWidget->setLayout(viewLayout);
 
     // for Notes
-    notesWidget = new QLabel("Notes page will be implemented here.");
+
+    //notesWidget = new QLabel("Notes page will be implemented here.");
+    notesWidget = new class notesWidget;
+
+    notesScrollArea = new QScrollArea;
+    notesScrollArea->setWidget(notesWidget);
+    notesScrollArea->setWidgetResizable(true);
+    notesScrollArea->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
+    notesScrollArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
 
     stackedWidget->addWidget(viewBooksWidget);
     stackedWidget->addWidget(addBookWidget);
     stackedWidget->addWidget(mainPageWidget);
-    stackedWidget->addWidget(notesWidget);
+    stackedWidget->addWidget(notesScrollArea);
     stackedWidget->addWidget(bookListView);
 
     stackedWidget->setCurrentWidget(mainPageWidget); // default view
@@ -141,7 +151,8 @@ void MainWindow::showBookListView() {
 }
 
 void MainWindow::showNotesView() {
-    stackedWidget->setCurrentWidget(notesWidget); // Switch to the "Notes" page
+    //FIX ME: doesnt update data
+    stackedWidget->setCurrentWidget(notesScrollArea); // Switch to the "Notes" page
 }
 
 void MainWindow::exitApplication() {

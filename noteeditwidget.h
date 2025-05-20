@@ -2,6 +2,9 @@
 #define NOTEEDITWIDGET_H
 
 #include <QWidget>
+#include <QNetworkAccessManager>
+#include <QSqlDatabase>
+#include "databasemanager.h"
 
 class QLineEdit;
 class QTextEdit;

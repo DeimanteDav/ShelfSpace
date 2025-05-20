@@ -13,13 +13,21 @@ SOURCES += \
     databasemanager.cpp \
     main.cpp \
     mainwindow.cpp \
-    bookListView.cpp
+    bookListView.cpp \
+    noteswidget.cpp \
+    noteeditwidget.cpp \
+    labeledbutton.cpp \
+    dragscrollarea.cpp
 
 HEADERS += \
     bookdetailswindow.h \
     databasemanager.h \
     mainwindow.h \
-    bookListView.h
+    bookListView.h \
+    noteswidget.h \
+    noteeditwidget.h \
+    labeledbutton.h \
+    dragscrollarea.h
 
 FORMS += \
     bookdetailswindow.ui \

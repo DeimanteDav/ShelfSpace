@@ -87,9 +87,8 @@ void LabeledButton::setTotalSize(const QSize &size) {
     setFixedSize(size);
 }
 
-void LabeledButton::handleClick() {
+void LabeledButton::handleClick() { // Should open single book page TODO
     emit clicked();
 }
-
 
 #include "labeledbutton.moc"

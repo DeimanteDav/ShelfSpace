@@ -52,6 +52,7 @@ private:
     QWidget *addBookWidget;
     QWidget *viewBooksWidget;
     QWidget *notesWidget;
+    QScrollArea* notesScrollArea; //for notesWdget
 
     QAction *actionAddBook;
     QAction *actionViewBooks;

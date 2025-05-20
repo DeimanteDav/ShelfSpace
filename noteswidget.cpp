@@ -19,20 +19,14 @@ struct Note {
 notesWidget::notesWidget(QWidget *parent)
     : QWidget(parent)
 {
-    /*QSqlDatabase db = DatabaseManager::instance().database();
+    QSqlDatabase db = DatabaseManager::instance().database();
 
     if (!db.isOpen()) {
         qDebug() << "Database is not open!";
     } else {
         qDebug() << "Database connection reused successfully";
-    }*/
-
-    QSqlDatabase db = QSqlDatabase::database("ShelfSpaceConnection");
-
-    if (!db.isOpen()) {
-        qCritical() << "Database not open for main NotesWidget!";
-        return;
     }
+
 
     QVBoxLayout *mainLayout = new QVBoxLayout(this);
 
@@ -97,10 +91,14 @@ QList<Book> notesWidget::loadAllBooks(QSqlDatabase &db) {
     QList<Book> books;
     QSqlQuery query(db);
 
-    query.prepare("SELECT id, title, author, year, image FROM tbFavorites");
-    //query.addBindValue(4); //for limit at testing
+    if(!db.tables().contains("tbBooks")){
+        qDebug() << "Load book table not found!";
+        return books;
+    }
+    query.prepare("SELECT id, title, author, year, image FROM tbBooks");  // Uncomment for testing
+    //query.prepare("SELECT id, title, author, year, image FROM tbFavorites");        // Comment when testing
     if (!query.exec()) {
-        qDebug() << "Query failed:" << query.lastError().text();
+        qDebug() << "Book load query failed:" << query.lastError().text();
         return books;
     }
 
@@ -126,7 +124,7 @@ QList<Note> notesWidget::loadAllNotes(QSqlDatabase &db, QString bookId){
     query.addBindValue(bookId);
 
     if(!query.exec()){
-        qDebug() << "Query failed:" << query.lastError().text();
+        qDebug() << "Note load query failed:" << query.lastError().text();
         return notes;
     }
 
