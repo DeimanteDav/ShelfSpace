@@ -16,7 +16,7 @@
 
 //id, bookid, reviewsid, dateCreated, dateModified, title, text
 void saveNoteToDatabase(const QString &bookId,
-                        const QDateTime &dateCreated,
+                        const QString &dateCreated,
                         const QString &title, const QString &text)
 {
 
@@ -48,9 +48,15 @@ void saveNoteToDatabase(const QString &bookId,
 
     query.prepare("INSERT INTO tbNotesLocal (bookId, dateCreated, dateModified, title, text) VALUES (?, ?, ?, ?, ?)");
     query.addBindValue(bookId);
-    query.addBindValue(QDateTime::currentDateTime().toString("yyyy-MM-ddThh:mm:ss"));
-    query.addBindValue(QDateTime::currentDateTime().toString("yyyy-MM-ddThh:mm:ss"));
-    query.addBindValue(title);
+    query.addBindValue(dateCreated);
+    query.addBindValue(QDateTime::currentDateTime().toString("yyyy-MM-ddThh:mm:ss.zzz"));
+    if(title == ""){
+        QString newTitle = "Note " + QDate::currentDate().toString("dd/MM");
+        query.addBindValue(newTitle);
+        qDebug() << "No provided title, making one automatically: " << newTitle;
+    }else{
+        query.addBindValue(title);
+    }
     query.addBindValue(text);
 
     if (!query.exec()) {
@@ -60,7 +66,61 @@ void saveNoteToDatabase(const QString &bookId,
     }
 }
 
-void loadNoteFromDatabase(QString id){
+void editNoteFromDatabase(const QString &bookId,
+                        const QString &dateCreated,
+                        const QString &newTitle, const QString &newText)
+{
+
+    QSqlDatabase db = QSqlDatabase::database("ShelfSpaceConnection");
+
+    if (!db.isOpen()) {
+        qDebug() << "Database not open for noteSaveOperation!";
+        return;
+    }
+
+    QSqlQuery query(db);
+    query.prepare("UPDATE tbNotesLocal SET title = ?, text = ?, dateModified = ? "
+                  "WHERE bookId = ? AND dateCreated = ?");
+
+    query.addBindValue(newTitle);
+    query.addBindValue(newText);
+    query.addBindValue(QDateTime::currentDateTime().toString("yyyy-MM-ddThh:mm:ss.zzz"));
+    query.addBindValue(bookId);
+    query.addBindValue(dateCreated);
+
+    if(!query.exec()){
+        qDebug() << "Edit FAILED";
+    }
+    else{
+        qDebug() << "Edit SUCCESS";
+    }
+}
+
+NoteEditWidget::NoteEditWidget(QWidget *parent, QString id) //New note
+    : QWidget(parent), id(id), dateCreated(QDateTime::currentDateTime().toString("yyyy-MM-ddThh:mm:ss.zzz"))
+{
+
+    qDebug() << "Opening a note window";
+    titleEdit = new QLineEdit(this);
+    titleEdit->setPlaceholderText("Title");
+
+    contentEdit = new QTextEdit(this);
+    contentEdit->setPlaceholderText("Write your note here...");
+
+    saveButton = new QPushButton("Save", this);
+
+    QVBoxLayout *layout = new QVBoxLayout(this);
+    layout->addWidget(titleEdit);
+    layout->addWidget(contentEdit);
+    layout->addWidget(saveButton);
+    setLayout(layout);
+
+    connect(saveButton, &QPushButton::clicked, this, &NoteEditWidget::handleSave);
+}
+
+NoteEditWidget::NoteEditWidget(QWidget *parent,QString id,QString dateCreated, QString title) //Load a note
+    : QWidget(parent), id(id), dateCreated(dateCreated)
+{
 
     QSqlDatabase db = QSqlDatabase::database("ShelfSpaceConnection");
 
@@ -70,49 +130,44 @@ void loadNoteFromDatabase(QString id){
     }
 
     QSqlQuery query(db);
-    query.prepare("SELECT text, dateCreated FROM tbReviews WHERE bookid = ?");
+    query.prepare("SELECT text FROM tbNotesLocal WHERE bookid = ? AND dateCreated = ? AND title = ?");
     query.addBindValue(id);
+    query.addBindValue(dateCreated);
+    query.addBindValue(title);
 
+
+    QString text;
     if (!query.exec()) {
         qCritical() << "Query failed:" << query.lastError().text();
         return;
+    } else{
+        if(query.next()){
+            text = query.value("text").toString();
+            qDebug() << "Node content found";
+        }
+        else{
+            qDebug() << "No matching note found";
+            return;
+        }
     }
 
-    if(query.next()){ // match found
-        int id = query.value("id").toInt();
-        QString text = query.value("text").toString();
-        QString date = query.value("dateCreated").toString();
-
-        qDebug() << "ID: "<< id;
-        qDebug() << "Content: " << text;
-    }
-}
-
-NoteEditWidget::NoteEditWidget(QWidget *parent, QString id)
-    : QWidget(parent), id(id)
-{
-
-    qDebug() << "Openning a note window";
+    qDebug() << "Opening a note window";
     titleEdit = new QLineEdit(this);
-    titleEdit->setPlaceholderText("Title");
+    titleEdit->setText(title);
 
     contentEdit = new QTextEdit(this);
-    contentEdit->setPlaceholderText("Write your note here...");
+    contentEdit->setText(text);
 
     saveButton = new QPushButton("Save", this);
-
-    //loadButton = new QPushButton("Load", this); No load functionality rn
 
     QVBoxLayout *layout = new QVBoxLayout(this);
     layout->addWidget(titleEdit);
     layout->addWidget(contentEdit);
     layout->addWidget(saveButton);
-    //layout->addWidget(loadButton);
 
     setLayout(layout);
 
-    connect(saveButton, &QPushButton::clicked, this, &NoteEditWidget::handleSave);
-    //connect(loadButton, &QPushButton::clicked, this, &NoteEditWidget::loadNote);
+    connect(saveButton, &QPushButton::clicked, this, &NoteEditWidget::handleEdit);
 }
 
 void NoteEditWidget::setContent(QString newContent)
@@ -124,35 +179,34 @@ void NoteEditWidget::setTitle(QString newTitle)
     contentEdit->setText(newTitle);
 }
 
-QString NoteEditWidget::title() const
+QString NoteEditWidget::getTitle() const
 {
     return titleEdit->text();
 }
 
-QString NoteEditWidget::content() const
+QString NoteEditWidget::getContent() const
 {
     return contentEdit->toPlainText();
 }
 
-QString NoteEditWidget::bookId() const
+QString NoteEditWidget::getBookId() const
 {
     return id;
 }
 
-QDateTime NoteEditWidget::dateCreated() const
+QString NoteEditWidget::getDateCreated() const
 {
-    return QDateTime::currentDateTime();
+    return dateCreated;
 }
 
 
 void NoteEditWidget::handleSave()
 {
-    emit noteSaved(title(), content());
-    saveNoteToDatabase(bookId(), dateCreated(), title(), content());
+    emit noteSaved(getTitle(), getContent());
+    saveNoteToDatabase(getBookId(), getDateCreated(), getTitle(), getContent());
 }
 
-void NoteEditWidget::loadNote(){
-    //loadNoteFromDatabase(id());
-    return;
+void NoteEditWidget::handleEdit(){
+    editNoteFromDatabase(getBookId(), getDateCreated(), getTitle(), getContent());
 }
 

@@ -12,24 +12,15 @@ class NoteEditWidget : public QWidget
     Q_OBJECT
 
 public:
-    NoteEditWidget(QWidget *parent, QString bookId);
-    QString bookId() const;
-
-    QDateTime dateCreated() const;
-
-    QString title() const;
-    QString content() const;
-
-    void setTitle(QString newTitle);
-    void setContent(QString newContent);
-
+    NoteEditWidget(QWidget *parent, QString bookId); //create note
+    NoteEditWidget(QWidget *parent, QString id, QString dateCreated, QString title); //edit note
 
 signals:
     void noteSaved(const QString &title, const QString &content);
 
 private slots:
     void handleSave();
-    void loadNote();
+    void handleEdit();
 
 
 private:
@@ -38,7 +29,18 @@ private:
     QPushButton *saveButton;
     QPushButton *loadButton;
 
-    QString id;
+    QString id; //bookId
+    QString dateCreated;
+
+    //Setters
+    void setTitle(QString newTitle);
+    void setContent(QString newContent);
+
+    //Getters
+    QString getBookId() const;
+    QString getDateCreated() const;
+    QString getTitle() const;
+    QString getContent() const;
 
 };
 

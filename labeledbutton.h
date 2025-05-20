@@ -5,8 +5,8 @@
 #include <QPushButton>
 #include <QLabel>
 #include <QSize>
-#include <QtNetwork/QNetworkAccessManager>
-#include <QtNetwork/QNetworkReply>
+#include <QNetworkAccessManager>
+#include <QNetworkReply>
 
 class ClickableLabel;
 
@@ -16,6 +16,7 @@ class LabeledButton : public QWidget {
 public:
     explicit LabeledButton(QWidget *parent = nullptr);
     void setIconFromFile(const QString &iconPath, const QSize &iconSize);
+    void setIconFromUrl(const QString &url, const QSize &iconSize);
     void setLabelText(const QString &text);
     void setTotalSize(const QSize &size);
 

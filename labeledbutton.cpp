@@ -52,6 +52,32 @@ void LabeledButton::setIconFromFile(const QString &iconPath, const QSize &iconSi
     iconButton->setFixedSize(iconSize);
 }
 
+void LabeledButton::setIconFromUrl(const QString& url, const QSize& iconSize) {
+    // Create a temporary manager (will be auto-deleted with QObject parenting)
+    QNetworkAccessManager* manager = new QNetworkAccessManager(this);
+
+    QUrl imageUrl(url);
+    QNetworkRequest request(imageUrl);
+    QNetworkReply* reply = manager->get(request);
+
+    connect(reply, &QNetworkReply::finished, this, [=]() {
+        reply->deleteLater();
+        manager->deleteLater();
+
+        if (reply->error() == QNetworkReply::NoError) {
+            QByteArray data = reply->readAll();
+            QPixmap pixmap;
+            if (pixmap.loadFromData(data)) {
+                iconButton->setIcon(QIcon(pixmap));
+                iconButton->setIconSize(iconSize);
+            }
+        } else {
+            qDebug() << "Failed to download icon:" << reply->errorString();
+        }
+    });
+}
+
+
 void LabeledButton::setLabelText(const QString &text) {
     textLabel->setAlignment(Qt::AlignLeft);
     textLabel->setText(text);

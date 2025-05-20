@@ -35,17 +35,4 @@ int main(int argc, char *argv[])
     scrollArea->show();
 
     return app.exec();
-    /*QApplication app(argc, argv);
-
-
-
-
-    QMainWindow window;
-    NoteEditWidget *note = new NoteEditWidget;
-
-    window.setCentralWidget(note);
-    window.resize(400, 300);
-    window.show();
-
-    return app.exec();*/
 }

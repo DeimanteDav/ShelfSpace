@@ -19,6 +19,7 @@
 #include <QSqlError>
 
 struct Book;
+struct Note;
 
 class notesWidget : public QWidget
 {
@@ -35,6 +36,8 @@ private:
 
     void setUpNotes();
     QList<Book> loadAllBooks(QSqlDatabase &db);
+    QList<Note> loadAllNotes(QSqlDatabase &db, QString bookId);
+
     LabeledButton *bookButton;
     QPushButton *addNoteButton;
 

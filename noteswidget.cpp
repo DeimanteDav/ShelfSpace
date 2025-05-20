@@ -10,6 +10,12 @@ struct Book {
     QString imageUrl;
 };
 
+struct Note {
+    QString id;
+    QString title;
+    QString dateCreated;
+};
+
 notesWidget::notesWidget(QWidget *parent)
     : QWidget(parent)
 {
@@ -35,7 +41,6 @@ notesWidget::notesWidget(QWidget *parent)
     QList books = loadAllBooks(db);
     for(int i = 0; i < books.size(); i++){
 
-        // Content inside scroll area.
         QWidget *contentWidget = new QWidget;
         QHBoxLayout *contentLayout = new QHBoxLayout(contentWidget);
         contentLayout->setSpacing(10);
@@ -44,25 +49,35 @@ notesWidget::notesWidget(QWidget *parent)
 
         // First button with icon and label /1 per book
         bookButton = new LabeledButton;
-        bookButton->setIconFromFile("/home/augustinas/Downloads/CV.jpg", QSize(120, 120));
+        bookButton->setIconFromUrl(books[i].imageUrl, QSize(120, 120));
         bookButton->setLabelText(books[i].title +" by " + books[i].author);
         bookButton->setTotalSize(QSize(160, 160));
         contentLayout->addWidget(bookButton);
 
-        for (int i = 1; i <= QRandomGenerator::global()->bounded(3, 7); ++i) { //for each existing note
-            QPushButton *button = new QPushButton(QString("Note %1").arg(i));
+
+        QList notes = loadAllNotes(db, books[i].id);
+        for (int i = 0; i < notes.size(); ++i) {
+            QPushButton *button = new QPushButton(notes[i].title);
+            button->setStyleSheet("text-align: left;");
             button->setFixedSize(120, 100);
+            connect(button, &QPushButton::clicked, this, [=]() {
+                NoteEditWidget *note = new NoteEditWidget(nullptr, notes[i].id, notes[i].dateCreated, notes[i].title);
+                qDebug() << "Trying to edit note of this book: " << notes[i].id;
+                qDebug() << "Title:" << notes[i].title;
+                note->show();
+            });
             contentLayout->addWidget(button);
         }
+
+
 
         // Add note button. / 1 per book
         addNoteButton = new QPushButton("Add note");
         addNoteButton->setFixedSize(120, 60);
         contentLayout->addWidget(addNoteButton);
-        //connect(addNoteButton, &QPushButton::clicked, this, notesWidget::openNewNote(books[i].id));
         connect(addNoteButton, &QPushButton::clicked, this, [=]() {
-            NoteEditWidget *note = new NoteEditWidget(nullptr, books[i].id);
             qDebug() << "Trying to add note to this book: " << books[i].id;
+            NoteEditWidget *note = new NoteEditWidget(nullptr, books[i].id);
             note->show();
         });
 
@@ -82,8 +97,8 @@ QList<Book> notesWidget::loadAllBooks(QSqlDatabase &db) {
     QList<Book> books;
     QSqlQuery query(db);
 
-    query.prepare("SELECT id, title, author, year, image FROM tbBooks LIMIT ?");
-    query.addBindValue(4);
+    query.prepare("SELECT id, title, author, year, image FROM tbFavorites");
+    //query.addBindValue(4); //for limit at testing
     if (!query.exec()) {
         qDebug() << "Query failed:" << query.lastError().text();
         return books;
@@ -101,6 +116,29 @@ QList<Book> notesWidget::loadAllBooks(QSqlDatabase &db) {
     }
 
     return books;
+}
+
+QList<Note> notesWidget::loadAllNotes(QSqlDatabase &db, QString bookId){
+    QList<Note> notes;
+    QSqlQuery query(db);
+
+    query.prepare("SELECT title, dateCreated FROM tbNotesLocal WHERE bookId = ? ORDER BY dateModified DESC");
+    query.addBindValue(bookId);
+
+    if(!query.exec()){
+        qDebug() << "Query failed:" << query.lastError().text();
+        return notes;
+    }
+
+    while (query.next()){
+        Note temp;
+        temp.id = bookId;
+        temp.dateCreated = query.value("dateCreated").toString();
+        temp.title = query.value("title").toString();
+        notes.append(temp);
+    }
+
+    return notes;
 }
 
 void notesWidget::setUpScrollArea(DragScrollArea *scrollArea){
