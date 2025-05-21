@@ -89,27 +89,62 @@ notesWidget::notesWidget(QWidget *parent)
 
 QList<Book> notesWidget::loadAllBooks(QSqlDatabase &db) {
     QList<Book> books;
+    QList<QString> ids;
     QSqlQuery query(db);
 
-    if(!db.tables().contains("tbBooks")){
-        qDebug() << "Load book table not found!";
+    if(!db.tables().contains("tbFavorites") || !db.tables().contains("tbBooks")){
+        qDebug() << "Load favorites/books table not found!";
         return books;
     }
-    query.prepare("SELECT id, title, author, year, image FROM tbBooks");  // Uncomment for testing
-    //query.prepare("SELECT id, title, author, year, image FROM tbFavorites");        // Comment when testing
+    else{
+        qDebug() << "Favorites and Books table found!";
+    }
+
+    query.prepare("SELECT bookId FROM tbFavorites");
+
     if (!query.exec()) {
         qDebug() << "Book load query failed:" << query.lastError().text();
         return books;
     }
+    else{
+        qDebug() << "Fetching bookIds from tbFavorites";
+    }
 
-    while (query.next()) {
+    while (query.next()) { // get bookId list
+        QString temp;
+        temp = query.value("bookId").toString();
+        ids.append(temp);
+    }
+
+    QStringList placeholders; // A placeholder for all bookIds
+    for (int i = 0; i < ids.size(); ++i) {
+        placeholders << QString(":id%1").arg(i);
+    }
+
+    QString queryStr = QString("SELECT id, title, author, year, image FROM tbBooks WHERE id IN (%1)")
+                           .arg(placeholders.join(", "));
+    qDebug() << "Query string:" << queryStr;
+
+    query.prepare(queryStr);
+
+    for (int i = 0; i < ids.size(); ++i) { // Giving placeholders value
+        query.bindValue(QString(":id%1").arg(i), ids[i]);
+        qDebug() << "bindValue: " << QString(":id%1").arg(i) << ids[i];
+    }
+
+    if (!query.exec()) {
+        qWarning() << "Query execution failed:" << query.lastError();
+        return books;
+    }
+
+    while(query.next()){
         Book temp;
-        temp.id = query.value("id").toString();
         temp.title = query.value("title").toString();
         temp.author = query.value("author").toString();
         temp.year = query.value("year").toInt();
         temp.imageUrl = query.value("image").toString();
-
+        temp.id = query.value("id").toString();
+        qDebug() << query.value("id").toString();
         books.append(temp);
     }
 
