@@ -1,4 +1,3 @@
-// mainwindow.cpp
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include "bookdetailswindow.h"
@@ -8,7 +7,7 @@
 
 #include <QSqlQuery>
 #include <QSqlError>
-#include <QDir>
+//#include <QDir>
 #include <QDebug>
 #include <QFont>
 #include <QNetworkAccessManager>
@@ -21,12 +20,12 @@
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QPixmap>
-#include <QEvent>
-#include <QListWidget>
+//#include <QEvent>
+//#include <QListWidget>
 #include <QPushButton>
 #include <QMenuBar>
-#include <QApplication>
-#include <qmessagebox.h>
+//#include <QApplication>
+//#include <qmessagebox.h>
 #include <QScrollArea>
 #include <QPointer>
 #include <QLineEdit>
@@ -35,24 +34,24 @@
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
-    , stackedWidget(new QStackedWidget(this))  // Used to switch between different views (pages)
-    , addBookWidget(new QWidget(this))          // Widget for adding new books (will be implemented by someone else)
+    , stackedWidget(new QStackedWidget(this))
+    , addBookWidget(new QWidget(this))
     , viewBooksWidget(new QWidget(this))
 {
     ui->setupUi(this);
 
     setupDatabase();
 
-    networkManager = new QNetworkAccessManager(this); // Manages network requests, in this case for downloading images
+    networkManager = new QNetworkAccessManager(this);
 
     bookListView = new BookListView(this);
     bookListView->setDatabase(DatabaseManager::instance().database());
 
-    setupCentralViews();                              // Sets up the main layout and widgets in the center of the window
+    setupCentralViews();
 
     setupMenu();
 
-    setCentralWidget(stackedWidget); // Makes the stacked widget the main area to display content
+    setCentralWidget(stackedWidget);
 
     setWindowTitle("ShelfSpace");
     resize(800, 600);
@@ -65,7 +64,7 @@ MainWindow::~MainWindow()
 
 void MainWindow::setupMenu()
 {
-    // Home Button - Loads all books and shows the main book grid
+    // Home Button
     QAction *actionHome = new QAction("Home", this);
     connect(actionHome, &QAction::triggered, [this]() {
         loadAllBooks();
@@ -73,17 +72,17 @@ void MainWindow::setupMenu()
     });
     menuBar()->addAction(actionHome);
 
-    // View Books (Collection) Button - Shows a view of all books (currently a placeholder)
+    // View Books (Collection) Button
     actionViewBooks = new QAction("&View Collection", this);
     connect(actionViewBooks, &QAction::triggered, this, &MainWindow::showBookListView);
     menuBar()->addAction(actionViewBooks);
 
-    // Notes Button - Shows the notes window (will be implemented by someone)
+    // Notes Button
     actionShowNotes = new QAction("Open Notes", this);
     connect(actionShowNotes, &QAction::triggered, this, &MainWindow::showNotesView);
     menuBar()->addAction(actionShowNotes);
 
-    // Exit Button - Closes the app
+    // Exit Button
     actionExit = new QAction("&Exit", this);
     connect(actionExit, &QAction::triggered, this, &MainWindow::exitApplication);
     menuBar()->addAction(actionExit);
@@ -92,7 +91,7 @@ void MainWindow::setupMenu()
 
 void MainWindow::setupCentralViews() {
 
-    mainPageWidget = new QWidget(this); // The main page displaying book covers
+    mainPageWidget = new QWidget(this);
     QVBoxLayout *mainLayout = new QVBoxLayout();
 
     QLabel *titleLabel = new QLabel("Welcome to ShelfSpace");
@@ -106,7 +105,6 @@ void MainWindow::setupCentralViews() {
     connect(searchLineEdit, &QLineEdit::textChanged, this, &MainWindow::filterBooks);
     mainLayout->addWidget(searchLineEdit);
 
-    // Scroll area to contain the dynamically loaded book widgets
     scrollArea = new QScrollArea(this);
     scrollArea->setWidgetResizable(true);
 
@@ -120,14 +118,12 @@ void MainWindow::setupCentralViews() {
 
     mainPageWidget->setLayout(mainLayout);
 
-    // Placeholder widget for View Books (Collection)
+    //View Books (Collection)
     QVBoxLayout *viewLayout = new QVBoxLayout();
     viewLayout->addWidget(new QLabel("View Books Table (placeholder)", this));
     viewBooksWidget->setLayout(viewLayout);
 
     // for Notes
-
-    //notesWidget = new QLabel("Notes page will be implemented here.");
     notesWidget = new class notesWidget;
 
     notesScrollArea = new QScrollArea;
@@ -146,7 +142,7 @@ void MainWindow::setupCentralViews() {
 }
 
 void MainWindow::showBookListView() {
-    bookListView->loadBooks(); // Assuming BookListView has a method to load/refresh books
+    bookListView->loadBooks();
     stackedWidget->setCurrentWidget(bookListView);
 }
 
@@ -168,7 +164,7 @@ void MainWindow::setupDatabase() {
         qDebug() << "Database connection reused successfully";
     }
 
-    // Enable Write-Ahead Logging (WAL) for better database performance
+    //Write-Ahead Logging (WAL)
     QSqlQuery query(db);
     query.exec("PRAGMA journal_mode=WAL;");
     if (query.lastError().isValid()) {
@@ -177,9 +173,8 @@ void MainWindow::setupDatabase() {
     qDebug() << "WAL mode status:" << query.lastError().text();
 }
 
-// Loads all book information from the database and displays them
 void MainWindow::loadAllBooks() {
-    // Abort any ongoing image downloads from the previous view to prevent issues
+    // Abort image downloads from previous
     qDebug() << "Number of active replies before abort:" << activeReplies.size();
     for (QNetworkReply *reply : activeReplies) {
         if (!reply) {
@@ -187,14 +182,13 @@ void MainWindow::loadAllBooks() {
             continue;
         }
         if (reply && reply->isRunning()) {
-            reply->abort(); // Stop download
+            reply->abort();
             qDebug() << "Aborted network reply:" << reply->url().toString();
         }
-        reply->deleteLater(); // Clean up the reply object later
+        reply->deleteLater();
     }
-    activeReplies.clear(); // Clear the list of active replies (downloads)
+    activeReplies.clear();
 
-    // Clear old book widgets
     QLayoutItem *child;
     while ((child = scrollLayout->takeAt(0)) != nullptr) {
         if (child->widget()) {
@@ -203,7 +197,6 @@ void MainWindow::loadAllBooks() {
         delete child;
     }
 
-    // Query the database to retrieve all book details
     QSqlQuery query("SELECT id, title, author, image FROM tbBooks");
 
     if (!query.exec()) {
@@ -211,7 +204,6 @@ void MainWindow::loadAllBooks() {
         return;
     }
 
-    // Loop through each book record from the database
     while (query.next()) {
         QString bookId = query.value("id").toString();
         QString title = query.value("title").toString();
@@ -222,11 +214,10 @@ void MainWindow::loadAllBooks() {
     }
 
     scrollLayout->addStretch();
-    query.finish(); // Close the database query
+    query.finish();
 }
 
 void MainWindow::filterBooks(const QString &searchText) {
-    // Abort any ongoing image downloads
     for (QNetworkReply *reply : activeReplies) {
         if (reply && reply->isRunning()) {
             reply->abort();
@@ -235,7 +226,6 @@ void MainWindow::filterBooks(const QString &searchText) {
     }
     activeReplies.clear();
 
-    // Clear existing book widgets
     QLayoutItem *child;
     while ((child = scrollLayout->takeAt(0)) != nullptr) {
         if (child->widget()) {
@@ -268,24 +258,20 @@ void MainWindow::filterBooks(const QString &searchText) {
 }
 
 void MainWindow::addBookToLayout(const QString& bookId, const QString& title, const QString& author, const QString& imageUrl) {
-    // Create a container widget for each book
     QWidget *bookWidget = new QWidget();
     QHBoxLayout *bookLayout = new QHBoxLayout(bookWidget);
 
-    // Label to display the book cover (initially shows "Loading...")
     QPointer<QLabel> coverLabel = new QLabel();
     coverLabel->setFixedSize(100, 150);
     coverLabel->setAlignment(Qt::AlignCenter);
     coverLabel->setText("Loading...");
-    bookLayout->addWidget(coverLabel); // Add the label to the book's layout
+    bookLayout->addWidget(coverLabel);
 
-    // Start download of the book cover image
     QUrl imageUrlWithId(imageUrl);
     QNetworkRequest request(imageUrlWithId);
     QNetworkReply *reply = networkManager->get(request);
-    activeReplies.append(reply); // Keep track of the download
+    activeReplies.append(reply);
 
-    // Connect the 'finished' signal of the download to a lambda function to handle the image display
     connect(reply, &QNetworkReply::finished, this, [this, reply, coverLabel]() {
         if(coverLabel)
         {
@@ -303,18 +289,16 @@ void MainWindow::addBookToLayout(const QString& bookId, const QString& title, co
         } else {
             qDebug() << "Warning: coverLabel was deleted before image finished loading for:" << reply->url().toString();
         }
-        activeReplies.removeOne(reply); // Remove the finished download from the active list
-        reply->deleteLater(); // Schedule the network reply object for deletion
+        activeReplies.removeOne(reply);
+        reply->deleteLater();
     });
 
-    // Container for the book title and author, vertically
     QWidget *infoContainer = new QWidget();
     QVBoxLayout *infoLayout = new QVBoxLayout(infoContainer);
     infoLayout->setSpacing(2);
     infoLayout->setContentsMargins(0, 0, 0, 0);
     infoContainer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
 
-    // Label to display the book title and author using Rich Text for formatting
     QLabel *titleAuthorLabel = new QLabel();
     QString richText = QString("<div style='line-height: 1.0;'><b style='font-size: 16px;'>%1</b><br/><span style='font-style: italic; font-size: 14px; color: gray;'>by %2</span></div>")
                            .arg(title).arg(author);
@@ -322,9 +306,9 @@ void MainWindow::addBookToLayout(const QString& bookId, const QString& title, co
     titleAuthorLabel->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
     infoLayout->addWidget(titleAuthorLabel);
 
-    bookLayout->addWidget(infoContainer); // Add the title/author container to the horizontal layout
+    bookLayout->addWidget(infoContainer);
 
-    // Button to add or remove the book from the favorites list
+    // Add/remove button
     QPushButton *favoriteButton = new QPushButton();
     favoriteButton->setCheckable(true);
     bool isFavorite = isBookFavorite(bookId);
@@ -344,7 +328,7 @@ void MainWindow::addBookToLayout(const QString& bookId, const QString& title, co
         }
     });
 
-    // Button to view more details about the book - CONNECTION POINT FOR SINGLE-BOOK-WINDOW
+    // Connection to single-book-window
     QPushButton *infoButton = new QPushButton("Info");
     connect(infoButton, &QPushButton::clicked, this, [this, bookId, title]() {
         qDebug() << "Info button clicked for book ID:" << bookId << " Title:" << title;
@@ -357,7 +341,7 @@ void MainWindow::addBookToLayout(const QString& bookId, const QString& title, co
     bookLayout->addWidget(infoButton);
 
     bookWidget->setLayout(bookLayout);
-    scrollLayout->addWidget(bookWidget); // Add the complete book widget to the scroll layout
+    scrollLayout->addWidget(bookWidget);
 }
 
 bool MainWindow::isBookFavorite(const QString& bookId) {
