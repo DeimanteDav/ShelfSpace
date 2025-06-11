@@ -303,6 +303,8 @@ void MainWindow::addBookToLayout(const QString& bookId, const QString& title, co
     QString richText = QString("<div style='line-height: 1.0;'><b style='font-size: 16px;'>%1</b><br/><span style='font-style: italic; font-size: 14px; color: gray;'>by %2</span></div>")
                            .arg(title).arg(author);
     titleAuthorLabel->setText(richText);
+    titleAuthorLabel->setWordWrap(true);
+    //titleAuthorLabel->setMaximumWidth(520);
     titleAuthorLabel->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
     infoLayout->addWidget(titleAuthorLabel);
 
