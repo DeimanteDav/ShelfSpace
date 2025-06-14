@@ -29,6 +29,7 @@ private:
     QPushButton *removeButton;
     QNetworkAccessManager *networkManager;
     QSqlDatabase m_db;
+    QList<QNetworkReply*> activeReplies;
 
     void setupUI();
     void setupTable();

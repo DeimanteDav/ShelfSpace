@@ -86,6 +86,14 @@ void BookListView::loadBooks()
         return;
     }
 
+    for (QNetworkReply *reply : activeReplies) {
+        if (reply && reply->isRunning()) {
+            reply->abort();
+        }
+        reply->deleteLater();
+    }
+    activeReplies.clear();
+
     tableWidget->setRowCount(0);
 
     QSqlQuery query(m_db);
@@ -151,6 +159,7 @@ void BookListView::loadBooks()
         // Capture row index with lambda
         QNetworkRequest request(imageUrl);
         QNetworkReply *reply = networkManager->get(request);
+        activeReplies.append(reply);
         connect(reply, &QNetworkReply::finished, this, [=]() {
             QPixmap pixmap;
             if (pixmap.loadFromData(reply->readAll())) {
@@ -160,6 +169,7 @@ void BookListView::loadBooks()
                 imageLabel->setText("X");
                 imageLabel->setAlignment(Qt::AlignCenter);
             }
+            activeReplies.removeOne(reply);
             reply->deleteLater();
         });
 
