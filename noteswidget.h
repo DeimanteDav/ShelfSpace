@@ -5,6 +5,7 @@
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QPushButton>
+#include <QMap>
 
 #include <QSqlDatabase>
 #include <QSqlQuery>
@@ -31,8 +32,13 @@ public:
 signals:
     void openNewNote(const QString &bookId);
 
+public slots:
+    void handleUpdate();
+    void refresh();
+
 private:
     void setUpScrollArea(DragScrollArea *scrollArea);
+
 
     void setUpNotes();
     QList<Book> loadAllBooks(QSqlDatabase &db);
@@ -40,6 +46,7 @@ private:
 
     LabeledButton *bookButton;
     QPushButton *addNoteButton;
+    QMap<QString, QPushButton*> noteButtons; // key = bookId + dateCreated
 
 };
 

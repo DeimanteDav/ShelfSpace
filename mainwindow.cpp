@@ -147,7 +147,7 @@ void MainWindow::showBookListView() {
 }
 
 void MainWindow::showNotesView() {
-    //FIX ME: doesnt update data
+    QMetaObject::invokeMethod(notesWidget, "refresh", Qt::DirectConnection);
     stackedWidget->setCurrentWidget(notesScrollArea); // Switch to the "Notes" page
 }
 

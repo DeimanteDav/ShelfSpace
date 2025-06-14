@@ -24,14 +24,6 @@ void saveNoteToDatabase(const QString &bookId,
         qDebug() << "Failed to open database";
         return;
     }
-    /*
-    QSqlDatabase db = DatabaseManager::instance().database();
-    if (!db.isOpen()) {
-        qDebug() << "Database is not open!";
-    } else {
-        qDebug() << "Database connection reused successfully";
-    }*/
-
 
     QSqlQuery query(DatabaseManager::instance().database());
     if(!DatabaseManager::instance().database().tables().contains("tbNotesLocal")){
@@ -76,15 +68,6 @@ void editNoteFromDatabase(const QString &bookId,
                         const QString &dateCreated,
                         const QString &newTitle, const QString &newText)
 {
-    /*
-    QSqlDatabase db = DatabaseManager::instance().database();
-
-    if (!db.isOpen()) {
-        qDebug() << "Database is not open!";
-    } else {
-        qDebug() << "Database connection reused successfully";
-    }*/
-
     if (!DatabaseManager::instance().openDatabase("ShelfSpace.db")) {
         qDebug() << "Failed to open database";
         return;
@@ -108,8 +91,27 @@ void editNoteFromDatabase(const QString &bookId,
     }
 }
 
+void deleteNoteFromDatabase(const QString &bookId, const QString &dateCreated)
+{
+    if (!DatabaseManager::instance().openDatabase("ShelfSpace.db")) {
+        qDebug() << "Failed to open database";
+        return;
+    }
+
+    QSqlQuery query(DatabaseManager::instance().database());
+    query.prepare("DELETE FROM tbNotesLocal WHERE bookId = ? AND dateCreated = ?");
+    query.addBindValue(bookId);
+    query.addBindValue(dateCreated);
+
+    if (!query.exec()) {
+        qDebug() << "Failed to delete note:" << query.lastError().text();
+    } else {
+        qDebug() << "Note deleted successfully!";
+    }
+}
+
 NoteEditWidget::NoteEditWidget(QWidget *parent, QString id) //New note
-    : QWidget(parent), id(id), dateCreated(QDateTime::currentDateTime().toString("yyyy-MM-ddThh:mm:ss.zzz"))
+    : QWidget(parent), bookId(id), dateCreated(QDateTime::currentDateTime().toString("yyyy-MM-ddThh:mm:ss.zzz"))
 {
 
     qDebug() << "Opening a note window";
@@ -120,28 +122,24 @@ NoteEditWidget::NoteEditWidget(QWidget *parent, QString id) //New note
     contentEdit->setPlaceholderText("Write your note here...");
 
     saveButton = new QPushButton("Save", this);
+    deleteButton = new QPushButton("Delete", this);
 
     QVBoxLayout *layout = new QVBoxLayout(this);
     layout->addWidget(titleEdit);
     layout->addWidget(contentEdit);
     layout->addWidget(saveButton);
+    layout->addWidget(deleteButton);
+
     setLayout(layout);
 
     connect(saveButton, &QPushButton::clicked, this, &NoteEditWidget::handleSave);
+    connect(deleteButton, &QPushButton::clicked, this, &NoteEditWidget::handleDelete);
 }
 
 NoteEditWidget::NoteEditWidget(QWidget *parent,QString id,QString dateCreated, QString title) //Load a note
-    : QWidget(parent), id(id), dateCreated(dateCreated)
+    : QWidget(parent), bookId(id), dateCreated(dateCreated)
 {
-    /*
-    QSqlDatabase db = DatabaseManager::instance().database();
 
-    if (!db.isOpen()) {
-        qDebug() << "Database is not open!";
-    } else {
-        qDebug() << "Database connection reused successfully";
-    }
-    */
     if (!DatabaseManager::instance().openDatabase("ShelfSpace.db")) {
         qDebug() << "Failed to open database";
         return;
@@ -177,15 +175,18 @@ NoteEditWidget::NoteEditWidget(QWidget *parent,QString id,QString dateCreated, Q
     contentEdit->setText(text);
 
     saveButton = new QPushButton("Save", this);
+    deleteButton = new QPushButton("Delete", this);
 
     QVBoxLayout *layout = new QVBoxLayout(this);
     layout->addWidget(titleEdit);
     layout->addWidget(contentEdit);
     layout->addWidget(saveButton);
+    layout->addWidget(deleteButton);
 
     setLayout(layout);
 
     connect(saveButton, &QPushButton::clicked, this, &NoteEditWidget::handleEdit);
+    connect(deleteButton, &QPushButton::clicked, this, &NoteEditWidget::handleDelete);
 }
 
 void NoteEditWidget::setContent(QString newContent)
@@ -209,7 +210,7 @@ QString NoteEditWidget::getContent() const
 
 QString NoteEditWidget::getBookId() const
 {
-    return id;
+    return bookId;
 }
 
 QString NoteEditWidget::getDateCreated() const
@@ -220,11 +221,18 @@ QString NoteEditWidget::getDateCreated() const
 
 void NoteEditWidget::handleSave()
 {
-    emit noteSaved(getTitle(), getContent());
     saveNoteToDatabase(getBookId(), getDateCreated(), getTitle(), getContent());
+    emit noteUpdated();
 }
 
 void NoteEditWidget::handleEdit(){
     editNoteFromDatabase(getBookId(), getDateCreated(), getTitle(), getContent());
+    emit noteUpdated();
+}
+
+void NoteEditWidget::handleDelete(){
+    deleteNoteFromDatabase(getBookId(), getDateCreated());
+    emit noteUpdated();
+    this->close();
 }
 

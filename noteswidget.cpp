@@ -29,62 +29,11 @@ notesWidget::notesWidget(QWidget *parent)
 
 
     QVBoxLayout *mainLayout = new QVBoxLayout(this);
-
-//For each book:
-    QSqlQuery query(db);
-    QList books = loadAllBooks(db);
-    for(int i = 0; i < books.size(); i++){
-
-        QWidget *contentWidget = new QWidget;
-        QHBoxLayout *contentLayout = new QHBoxLayout(contentWidget);
-        contentLayout->setSpacing(10);
-        contentLayout->setContentsMargins(10, 10, 10, 10);
-        contentLayout->setAlignment(Qt::AlignLeft);
-
-        // First button with icon and label /1 per book
-        bookButton = new LabeledButton;
-        bookButton->setIconFromUrl(books[i].imageUrl, QSize(120, 120));
-        bookButton->setLabelText(books[i].title +" by " + books[i].author);
-        bookButton->setTotalSize(QSize(160, 160));
-        contentLayout->addWidget(bookButton);
-
-
-        QList notes = loadAllNotes(db, books[i].id);
-        for (int i = 0; i < notes.size(); ++i) {
-            QPushButton *button = new QPushButton(notes[i].title);
-            button->setStyleSheet("text-align: left;");
-            button->setFixedSize(120, 100);
-            connect(button, &QPushButton::clicked, this, [=]() {
-                NoteEditWidget *note = new NoteEditWidget(nullptr, notes[i].id, notes[i].dateCreated, notes[i].title);
-                qDebug() << "Trying to edit note of this book: " << notes[i].id;
-                qDebug() << "Title:" << notes[i].title;
-                note->show();
-            });
-            contentLayout->addWidget(button);
-        }
-
-
-
-        // Add note button. / 1 per book
-        addNoteButton = new QPushButton("Add note");
-        addNoteButton->setFixedSize(120, 60);
-        contentLayout->addWidget(addNoteButton);
-        connect(addNoteButton, &QPushButton::clicked, this, [=]() {
-            qDebug() << "Trying to add note to this book: " << books[i].id;
-            NoteEditWidget *note = new NoteEditWidget(nullptr, books[i].id);
-            note->show();
-        });
-
-        // Scroll Area.
-        DragScrollArea *scrollArea = new DragScrollArea;
-        setUpScrollArea(scrollArea);
-
-        scrollArea->setWidget(contentWidget);
-        mainLayout->addWidget(scrollArea);
-    }
-
-//end for
     mainLayout->addStretch();
+
+    this->setLayout(mainLayout);
+
+    refresh();
 }
 
 QList<Book> notesWidget::loadAllBooks(QSqlDatabase &db) {
@@ -180,4 +129,74 @@ void notesWidget::setUpScrollArea(DragScrollArea *scrollArea){
     scrollArea->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     scrollArea->setFixedHeight(190);
     scrollArea->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+}
+
+void notesWidget::refresh() {
+    QLayoutItem *child;
+    while ((child = layout()->takeAt(0)) != nullptr) {
+        if (child->widget()) {
+            delete child->widget(); // Remove old widgets
+        }
+        delete child;
+    }
+
+    QSqlDatabase db = DatabaseManager::instance().database();
+    //For each book:
+    QSqlQuery query(db);
+    QList books = loadAllBooks(db);
+    for(int i = 0; i < books.size(); i++){
+
+        QWidget *contentWidget = new QWidget;
+        QHBoxLayout *contentLayout = new QHBoxLayout(contentWidget);
+        contentLayout->setSpacing(10);
+        contentLayout->setContentsMargins(10, 10, 10, 10);
+        contentLayout->setAlignment(Qt::AlignLeft);
+
+        // First button with icon and label /1 per book
+        bookButton = new LabeledButton;
+        bookButton->setIconFromUrl(books[i].imageUrl, QSize(120, 120));
+        bookButton->setLabelText(books[i].title +" by " + books[i].author);
+        bookButton->setTotalSize(QSize(160, 160));
+        contentLayout->addWidget(bookButton);
+
+
+        QList notes = loadAllNotes(db, books[i].id);
+        for (int i = 0; i < notes.size(); ++i) {
+            QPushButton *button = new QPushButton(notes[i].title);
+            button->setStyleSheet("text-align: left;");
+            button->setFixedSize(120, 100);
+            connect(button, &QPushButton::clicked, this, [=]() {
+                NoteEditWidget *note = new NoteEditWidget(nullptr, notes[i].id, notes[i].dateCreated, notes[i].title);
+                connect(note, &NoteEditWidget::noteUpdated, this, &notesWidget::refresh);
+                qDebug() << "Trying to edit note of this book: " << notes[i].id;
+                qDebug() << "Title:" << notes[i].title;
+                note->show();
+            });
+            contentLayout->addWidget(button);
+        }
+
+
+
+        // Add note button. / 1 per book
+        addNoteButton = new QPushButton("Add note");
+        addNoteButton->setFixedSize(120, 60);
+        contentLayout->addWidget(addNoteButton);
+        connect(addNoteButton, &QPushButton::clicked, this, [=]() {
+            qDebug() << "Trying to add note to this book: " << books[i].id;
+            NoteEditWidget *note = new NoteEditWidget(nullptr, books[i].id);
+            connect(note, &NoteEditWidget::noteUpdated, this, &notesWidget::refresh);
+            note->show();
+        });
+
+        // Scroll Area.
+        DragScrollArea *scrollArea = new DragScrollArea;
+        setUpScrollArea(scrollArea);
+
+        scrollArea->setWidget(contentWidget);
+        layout()->addWidget(scrollArea);
+    }
+}
+
+void notesWidget::handleUpdate(){
+    refresh();
 }
